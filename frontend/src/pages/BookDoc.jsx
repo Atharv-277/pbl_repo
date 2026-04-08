@@ -2,7 +2,7 @@ import { toast } from 'react-toastify';
 
 
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FaCheckCircle } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 import { appointmentAPI, doctorAPI, patientAPI } from "../services/api";
@@ -64,6 +64,28 @@ export default function BookDoctorProfile() {
     const day = String(dateObj.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
+
+  const toSlotDateTime = (dateKey, timeValue) => {
+    if (!dateKey || !timeValue) return null;
+    const [hours, minutes] = timeValue.split(":").map(Number);
+    const baseDate = new Date(`${dateKey}T00:00:00`);
+    if (Number.isNaN(baseDate.getTime()) || Number.isNaN(hours) || Number.isNaN(minutes)) {
+      return null;
+    }
+    baseDate.setHours(hours, minutes, 0, 0);
+    return baseDate;
+  };
+
+  const availableTimeSlots = useMemo(() => {
+    const selectedDateKey = dates[selectedDate]?.fullDate;
+    if (!selectedDateKey) return [];
+
+    const now = new Date();
+    return timeSlots.filter((timeValue) => {
+      const slotDateTime = toSlotDateTime(selectedDateKey, timeValue);
+      return slotDateTime && slotDateTime > now;
+    });
+  }, [dates, selectedDate]);
 
   // Function to get proper image URL
   const getImageUrl = (profileImage) => {
@@ -161,8 +183,20 @@ export default function BookDoctorProfile() {
     fetchBookedSlots();
   }, [doctor?._id, selectedDate, dates.length]);
 
+  useEffect(() => {
+    if (selectedTime && !availableTimeSlots.includes(selectedTime)) {
+      setSelectedTime(null);
+    }
+  }, [availableTimeSlots, selectedTime]);
+
   const handleBookAppointment = async () => {
     if (!doctor || !selectedTime) return;
+
+    if (!availableTimeSlots.includes(selectedTime)) {
+      toast.error("Selected slot has already passed. Please choose a future time.");
+      setSelectedTime(null);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -434,7 +468,7 @@ export default function BookDoctorProfile() {
             <div className="mt-7">
               <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Select Time</h3>
               <div className="flex flex-wrap gap-2.5">
-                {timeSlots.map((time, i) => (
+                {availableTimeSlots.map((time, i) => (
                   <button
                     key={i}
                     disabled={bookedSlots.has(time)}
@@ -456,6 +490,11 @@ export default function BookDoctorProfile() {
                   </button>
                 ))}
               </div>
+              {availableTimeSlots.length === 0 ? (
+                <p className="mt-3 text-sm text-slate-500">
+                  No future slots available for the selected date.
+                </p>
+              ) : null}
             </div>
           </section>
 
