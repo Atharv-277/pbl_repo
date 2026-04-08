@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 import {
   Activity,
   ArrowUpRight,
@@ -18,9 +20,10 @@ import {
   Droplets,
   Settings,
   LogOut,
+  Star,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { appointmentAPI, doctorAPI, patientAPI } from "../services/api";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { appointmentAPI, doctorAPI, patientAPI, reviewAPI } from "../services/api";
 
 const formatStatus = (status) => {
   if (status === "scheduled") return "Scheduled";
@@ -44,7 +47,14 @@ export default function PatientDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [doctorRatings, setDoctorRatings] = useState({});
+  const [topRatedDoctors, setTopRatedDoctors] = useState([]);
+  const [openReviewAppointmentId, setOpenReviewAppointmentId] = useState("");
+  const [reviewDrafts, setReviewDrafts] = useState({});
+  const [submittingReviewFor, setSubmittingReviewFor] = useState("");
+  const [cancellingAppointmentId, setCancellingAppointmentId] = useState("");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const user = useMemo(() => JSON.parse(localStorage.getItem("user") || "{}"), []);
 
@@ -75,6 +85,72 @@ export default function PatientDashboard() {
 
     fetchDashboardData();
   }, []);
+
+  const loadDoctorRatings = async (doctorList, patientId) => {
+    if (!doctorList.length) {
+      setDoctorRatings({});
+      setTopRatedDoctors([]);
+      return;
+    }
+
+    const ratingResults = await Promise.all(
+      doctorList.map(async (doctor) => {
+        try {
+          const response = await reviewAPI.getDoctorReviews(doctor._id);
+          const reviews = Array.isArray(response.data) ? response.data : [];
+          const reviewCount = reviews.length;
+          const averageRating = reviewCount
+            ? reviews.reduce((sum, review) => sum + Number(review?.rating || 0), 0) / reviewCount
+            : 0;
+
+          const hasReviewed = Boolean(
+            patientId && reviews.some((review) => String(review?.patient?._id) === String(patientId))
+          );
+
+          return {
+            ...doctor,
+            averageRating,
+            reviewCount,
+            hasReviewed,
+          };
+        } catch (ratingError) {
+          return {
+            ...doctor,
+            averageRating: 0,
+            reviewCount: 0,
+            hasReviewed: false,
+          };
+        }
+      })
+    );
+
+    const ratingMap = {};
+    ratingResults.forEach((doctor) => {
+      ratingMap[String(doctor._id)] = {
+        averageRating: doctor.averageRating,
+        reviewCount: doctor.reviewCount,
+        hasReviewed: doctor.hasReviewed,
+      };
+    });
+
+    const rankedDoctors = [...ratingResults]
+      .sort((a, b) => {
+        if (b.averageRating === a.averageRating) {
+          return b.reviewCount - a.reviewCount;
+        }
+        return b.averageRating - a.averageRating;
+      })
+      .filter((doctor) => doctor.reviewCount > 0)
+      .slice(0, 10);
+
+    setDoctorRatings(ratingMap);
+    setTopRatedDoctors(rankedDoctors);
+  };
+
+  useEffect(() => {
+    if (!doctors.length) return;
+    loadDoctorRatings(doctors, patientProfile?._id);
+  }, [doctors, patientProfile?._id]);
 
   const assignedDoctor = dashboardData?.doctor || null;
   const reviews = dashboardData?.reviews || [];
@@ -120,17 +196,114 @@ export default function PatientDashboard() {
   }, [appointments, reviews.length]);
 
   const appointmentCards = useMemo(() => {
-    return appointments.map((item) => ({
+    return appointments
+      .filter((item) => item?.status !== "cancelled")
+      .map((item) => ({
       id: item?._id,
+      doctorId: item?.doctor?._id,
       doctor: item?.doctor?.userId?.name || "Doctor",
       specialty: item?.doctor?.specialization || "General Physician",
       date: item?.appointmentDate ? new Date(item.appointmentDate).toLocaleDateString() : "Date pending",
       time: item?.time || "Time pending",
       mode: "In-Clinic",
+      description: item?.description || "",
+      createdByRole: item?.createdByRole || "patient",
+      doctorNote: typeof item?.doctorNote === "string" ? item.doctorNote.trim() : "",
       status: formatStatus(item?.status),
       rawStatus: item?.status,
     }));
   }, [appointments]);
+
+  const doctorNoteAlerts = useMemo(() => {
+    return appointmentCards
+      .filter((appointment) => Boolean(appointment.doctorNote))
+      .map((appointment) =>
+        `Doctor update from Dr. ${appointment.doctor}: ${appointment.doctorNote}`
+      );
+  }, [appointmentCards]);
+
+  const handleDraftChange = (appointmentId, field, value) => {
+    setReviewDrafts((prev) => ({
+      ...prev,
+      [appointmentId]: {
+        rating: prev[appointmentId]?.rating || 5,
+        comment: prev[appointmentId]?.comment || "",
+        [field]: value,
+      },
+    }));
+  };
+
+  const submitDoctorRating = async (appointment) => {
+    const draft = reviewDrafts[appointment.id] || { rating: 5, comment: "" };
+    const ratingValue = Number(draft.rating);
+    const commentValue = String(draft.comment || "").trim();
+
+    if (!appointment?.doctorId) {
+      toast.error("Doctor details not available for this appointment.");
+      return;
+    }
+
+    if (!patientProfile?._id) {
+      toast.error("Patient profile not found. Please refresh the page.");
+      return;
+    }
+
+    if (Number.isNaN(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+      toast.error("Please select a rating between 1 and 5.");
+      return;
+    }
+
+    if (!commentValue) {
+      toast.error("Please add a short review comment.");
+      return;
+    }
+
+    try {
+      setSubmittingReviewFor(appointment.id);
+      await reviewAPI.createReview({
+        doctor: appointment.doctorId,
+        patient: patientProfile._id,
+        rating: ratingValue,
+        comment: commentValue,
+      });
+
+      toast.success("Thanks! Your rating was submitted.");
+      setOpenReviewAppointmentId("");
+      setReviewDrafts((prev) => ({
+        ...prev,
+        [appointment.id]: { rating: 5, comment: "" },
+      }));
+      await loadDoctorRatings(doctors, patientProfile._id);
+    } catch (submitError) {
+      toast.error(submitError?.response?.data?.message || "Failed to submit rating.");
+    } finally {
+      setSubmittingReviewFor("");
+    }
+  };
+
+  const cancelAppointment = async (appointmentId) => {
+    const ok = window.confirm("Cancel this appointment? This action is for mistaken bookings.");
+    if (!ok) return;
+
+    try {
+      setCancellingAppointmentId(appointmentId);
+      await appointmentAPI.updateAppointmentStatus(appointmentId, { status: "cancelled" });
+
+      setAppointments((prev) =>
+        prev.map((item) =>
+          String(item?._id) === String(appointmentId)
+            ? { ...item, status: "cancelled" }
+            : item
+        )
+      );
+
+      toast.success("Appointment cancelled successfully.");
+    } catch (cancelError) {
+      toast.error(cancelError?.response?.data?.message || "Failed to cancel appointment.");
+    } finally {
+      setCancellingAppointmentId("");
+    }
+  };
 
   const filteredDoctors = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -161,6 +334,12 @@ export default function PatientDashboard() {
   const notifications = useMemo(() => {
     const list = [];
 
+    const doctorBookedFollowUps = appointmentCards.filter(
+      (appointment) =>
+        appointment.rawStatus === "scheduled" &&
+        appointment.createdByRole === "doctor"
+    );
+
     if (assignedDoctor?.userId?.name) {
       list.push(`Assigned doctor: Dr. ${assignedDoctor.userId.name}`);
     } else {
@@ -175,8 +354,20 @@ export default function PatientDashboard() {
       list.push(`${reviews.length} review(s) are available for your assigned doctor.`);
     }
 
+    if (doctorBookedFollowUps.length > 0) {
+      list.push(`Doctor scheduled ${doctorBookedFollowUps.length} follow-up visit(s) for you.`);
+      doctorBookedFollowUps.slice(0, 5).forEach((appointment) => {
+        list.push(`Follow-up with Dr. ${appointment.doctor} on ${appointment.date} at ${appointment.time}.`);
+      });
+    }
+
+    if (doctorNoteAlerts.length > 0) {
+      list.push(`You have ${doctorNoteAlerts.length} doctor note update(s).`);
+      list.push(...doctorNoteAlerts.slice(0, 5));
+    }
+
     return list;
-  }, [assignedDoctor?.userId?.name, appointmentCards.length, reviews.length]);
+  }, [assignedDoctor?.userId?.name, appointmentCards, reviews.length, doctorNoteAlerts]);
 
   const patient = {
     name: user?.name || "Patient",
@@ -211,8 +402,8 @@ export default function PatientDashboard() {
     const sectionMap = {
       overview: "patient-overview",
       appointments: "appointments-section",
-      prescriptions: "medication-section",
-      settings: "profile-section",
+      notifications: "notifications-section",
+      settings: "settings-section",
     };
 
     const sectionId = sectionMap[action];
@@ -224,7 +415,7 @@ export default function PatientDashboard() {
   const sidebarOptions = [
     { key: "overview", label: "Dashboard", icon: <Sparkles size={16} /> },
     { key: "appointments", label: "Appointments", icon: <CalendarDays size={16} /> },
-    { key: "prescriptions", label: "Prescriptions", icon: <Pill size={16} /> },
+    { key: "notifications", label: "Notifications", icon: <Bell size={16} /> },
     { key: "settings", label: "Settings", icon: <Settings size={16} /> },
     { key: "logout", label: "Logout", icon: <LogOut size={16} /> },
   ];
@@ -246,6 +437,27 @@ export default function PatientDashboard() {
     "Track appointment outcomes after each visit",
     "Use doctor notes for follow-up planning",
   ];
+
+  useEffect(() => {
+    const section = searchParams.get("section");
+    if (!section || loading) return;
+
+    const sectionMap = {
+      overview: "patient-overview",
+      appointments: "appointments-section",
+      notifications: "notifications-section",
+      settings: "settings-section",
+    };
+
+    const targetId = sectionMap[section];
+    if (!targetId) return;
+
+    const timer = setTimeout(() => {
+      scrollToSection(targetId);
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [searchParams, loading]);
 
   if (loading) {
     return (
@@ -398,6 +610,46 @@ export default function PatientDashboard() {
           ))}
         </section>
 
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold text-slate-900">Top Rated Doctors</h2>
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+              <Star size={13} />
+              Live ranking
+            </span>
+          </div>
+
+          {topRatedDoctors.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+              Ratings will appear here after patients submit reviews.
+            </div>
+          ) : (
+            <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-4">
+              <motion.div
+                className="flex w-max gap-3"
+                animate={{ x: ["0%", "-50%"] }}
+                transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
+              >
+                {[...topRatedDoctors, ...topRatedDoctors].map((doctor, index) => (
+                  <article
+                    key={`${doctor._id}-${index}`}
+                    className="min-w-[240px] rounded-xl border border-slate-200 bg-white p-3"
+                  >
+                    <p className="text-sm font-semibold text-slate-900">Dr. {doctor.name || doctor.userId?.name || "Doctor"}</p>
+                    <p className="text-xs text-slate-600">{doctor.specialization || "General Physician"}</p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                        <Star size={12} /> {doctor.averageRating.toFixed(1)}
+                      </span>
+                      <span className="text-xs text-slate-500">{doctor.reviewCount} review(s)</span>
+                    </div>
+                  </article>
+                ))}
+              </motion.div>
+            </div>
+          )}
+        </section>
+
         <section className="grid gap-6 xl:grid-cols-3">
           <div className="xl:col-span-2 space-y-6">
             <div id="appointments-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
@@ -430,6 +682,11 @@ export default function PatientDashboard() {
                         <p className="mt-1 text-sm text-slate-500">
                           {appointment.date} • {appointment.time} • {appointment.mode}
                         </p>
+                        {appointment.rawStatus === "scheduled" && appointment.createdByRole === "doctor" ? (
+                          <p className="mt-1 inline-flex rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+                            Follow-up booked by doctor
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 md:justify-end">
@@ -446,8 +703,102 @@ export default function PatientDashboard() {
                             View Details
                           </button>
                         ) : null}
+
+                        {appointment.rawStatus === "scheduled" ? (
+                          <button
+                            type="button"
+                            onClick={() => cancelAppointment(appointment.id)}
+                            disabled={cancellingAppointmentId === appointment.id}
+                            className="inline-flex items-center gap-2 rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-60"
+                          >
+                            {cancellingAppointmentId === appointment.id ? "Cancelling..." : "Cancel (Mistaken Booking)"}
+                          </button>
+                        ) : null}
+
+                        {appointment.rawStatus === "completed" ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenReviewAppointmentId((prev) =>
+                                prev === appointment.id ? "" : appointment.id
+                              )
+                            }
+                            disabled={Boolean(doctorRatings[appointment.doctorId]?.hasReviewed)}
+                            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
+                              doctorRatings[appointment.doctorId]?.hasReviewed
+                                ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                                : "bg-amber-500 text-white hover:bg-amber-600"
+                            }`}
+                          >
+                            <Star size={15} />
+                            {doctorRatings[appointment.doctorId]?.hasReviewed ? "Rated" : "Give Rating"}
+                          </button>
+                        ) : null}
                       </div>
                     </div>
+
+                    {appointment.doctorNote ? (
+                      <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">
+                          Doctor Follow-up Note
+                        </p>
+                        <p className="mt-1 text-sm text-cyan-900">{appointment.doctorNote}</p>
+                      </div>
+                    ) : null}
+
+                    {appointment.rawStatus === "completed" &&
+                    openReviewAppointmentId === appointment.id &&
+                    !doctorRatings[appointment.doctorId]?.hasReviewed ? (
+                      <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4">
+                        <p className="mb-2 text-sm font-semibold text-slate-900">Rate Dr. {appointment.doctor}</p>
+
+                        <div className="mb-3 flex items-center gap-2">
+                          {[1, 2, 3, 4, 5].map((value) => {
+                            const selectedRating = Number(reviewDrafts[appointment.id]?.rating || 5);
+                            const isActive = value <= selectedRating;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => handleDraftChange(appointment.id, "rating", value)}
+                                className={`rounded-lg p-1.5 ${isActive ? "text-amber-500" : "text-slate-300"}`}
+                                aria-label={`Rate ${value} star`}
+                              >
+                                <Star size={18} fill={isActive ? "currentColor" : "none"} />
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <textarea
+                          value={reviewDrafts[appointment.id]?.comment || ""}
+                          onChange={(event) =>
+                            handleDraftChange(appointment.id, "comment", event.target.value)
+                          }
+                          rows={3}
+                          placeholder="Write your feedback about this consultation..."
+                          className="w-full rounded-lg border border-slate-300 p-2.5 text-sm outline-none focus:border-amber-300"
+                        />
+
+                        <div className="mt-3 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setOpenReviewAppointmentId("")}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => submitDoctorRating(appointment)}
+                            disabled={submittingReviewFor === appointment.id}
+                            className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-amber-300"
+                          >
+                            {submittingReviewFor === appointment.id ? "Submitting..." : "Submit Rating"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                   </article>
                 ))}
               </div>
@@ -528,7 +879,7 @@ export default function PatientDashboard() {
               </div>
             </div>
 
-            <div id="profile-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                 <Activity className="text-cyan-700" size={18} />
                 Wellness Goals
@@ -555,16 +906,16 @@ export default function PatientDashboard() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div id="notifications-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                 <Bell className="text-amber-600" size={18} />
                 Notifications
               </h2>
 
               <div className="space-y-3">
-                {notifications.map((note) => (
+                {notifications.map((note, index) => (
                   <div
-                    key={note}
+                    key={`${note}-${index}`}
                     className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"
                   >
                     {note}
@@ -573,51 +924,57 @@ export default function PatientDashboard() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <UserRound className="text-slate-700" size={18} />
-                Profile Summary
-              </h2>
+          </aside>
+        </section>
 
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-                  <div className="grid h-14 w-14 place-items-center rounded-xl bg-slate-100">
-                    <UserRound className="text-slate-700" size={24} />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">{patient.name}</p>
-                    <p className="text-xs text-slate-500">Patient ID: {patient.id}</p>
-                  </div>
-                </div>
+        <section id="settings-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <Settings className="text-slate-700" size={18} />
+            Settings
+          </h2>
 
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
+              <div className="grid h-14 w-14 place-items-center rounded-xl bg-slate-100">
+                <UserRound className="text-slate-700" size={24} />
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900">{patient.name}</p>
+                <p className="text-xs text-slate-500">Patient ID: {patient.id}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 p-4">
+                <h3 className="mb-2 text-sm font-semibold text-slate-900">Profile Summary</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm text-slate-700">
                   <p>Age: {patient.age}</p>
                   <p>Gender: {patient.gender}</p>
                   <p>Blood: {patient.bloodGroup}</p>
                   <p>Phone: {patient.phone}</p>
                 </div>
+              </div>
 
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-                  <p className="inline-flex items-center gap-2 font-medium">
-                    <ShieldCheck size={16} />
-                    Account Status
-                  </p>
-                  <p className="mt-1 text-xs">{patient.insurance}</p>
-                </div>
-
-                <div>
-                  <p className="mb-2 text-sm font-medium text-slate-700">Upcoming Tasks</p>
-                  <ul className="space-y-2 text-sm text-slate-600">
-                    {upcomingTasks.map((task) => (
-                      <li key={task} className="rounded-lg bg-slate-50 px-3 py-2">
-                        {task}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+                <p className="inline-flex items-center gap-2 font-medium">
+                  <ShieldCheck size={16} />
+                  Account Status
+                </p>
+                <p className="mt-1 text-xs">{patient.insurance}</p>
               </div>
             </div>
-          </aside>
+
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-700">Upcoming Tasks</p>
+              <ul className="space-y-2 text-sm text-slate-600">
+                {upcomingTasks.map((task) => (
+                  <li key={task} className="rounded-lg bg-slate-50 px-3 py-2">
+                    {task}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">

@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+export const API_BASE_ROOT = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || `${API_BASE_ROOT}/api`;
+
 // Axios instance - deployment ready
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+    baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -48,6 +51,9 @@ export const doctorAPI = {
     getMyReviews: () => api.get('/doctors/reviews'),
     getAllDoctors: () => api.get('/doctors'),
     deleteMyPatientRecord: (patientId) => api.delete(`/doctors/patients/${patientId}`),
+    getMyBlockedSlots: () => api.get('/doctors/blocked-slots'),
+    addBlockedSlot: (slotData) => api.post('/doctors/blocked-slots', slotData),
+    deleteBlockedSlot: (slotId) => api.delete(`/doctors/blocked-slots/${slotId}`),
 };
 
 export const patientAPI = {

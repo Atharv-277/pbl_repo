@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { useState, useEffect, useMemo } from "react";
 import { FaCheckCircle } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
-import { appointmentAPI, doctorAPI, patientAPI } from "../services/api";
+import { API_BASE_ROOT, appointmentAPI, doctorAPI, patientAPI } from "../services/api";
 import Navbar from "../Navbar";
 
 export default function BookDoctorProfile() {
@@ -18,6 +18,9 @@ export default function BookDoctorProfile() {
   const [doctors, setDoctors] = useState([]);
   const [showDoctorList, setShowDoctorList] = useState(true);
   const [bookedSlots, setBookedSlots] = useState(new Set());
+  const [busySlots, setBusySlots] = useState(new Set());
+  const [busySlotReasonByTime, setBusySlotReasonByTime] = useState({});
+  const [busySlotsForSelectedDate, setBusySlotsForSelectedDate] = useState([]);
   const [patientDescription, setPatientDescription] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [specializationFilter, setSpecializationFilter] = useState("");
@@ -29,6 +32,13 @@ export default function BookDoctorProfile() {
 
   const timeSlots = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"];
 
+  const toNumericValue = (value) => {
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    if (value === null || value === undefined) return 0;
+    const parsed = Number(String(value).replace(/[^0-9.]/g, ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
   const specializationOptions = [...new Set(doctors.map((doc) => doc.specialization).filter(Boolean))];
   const hospitalOptions = [...new Set(doctors.map((doc) => doc.HospitalName).filter(Boolean))];
 
@@ -36,14 +46,17 @@ export default function BookDoctorProfile() {
     const doctorName = (doc.name || doc.userId?.name || "").toLowerCase();
     const specialization = doc.specialization || "";
     const hospital = doc.HospitalName || "";
-    const fee = Number(doc.fees) || 0;
-    const experience = Number(doc.experiance) || 0;
+    const fee = toNumericValue(doc.fees);
+    const experience = toNumericValue(doc.experiance ?? doc.experience);
 
     const matchesSearch = !searchTerm || doctorName.includes(searchTerm.toLowerCase());
     const matchesSpecialization = !specializationFilter || specialization === specializationFilter;
     const matchesHospital = !hospitalFilter || hospital === hospitalFilter;
-    const matchesFee = !maxFee || fee <= Number(maxFee);
-    const matchesExperience = !minExperience || experience >= Number(minExperience);
+    const maxFeeValue = toNumericValue(maxFee);
+    const minExperienceValue = toNumericValue(minExperience);
+
+    const matchesFee = !maxFee || fee <= maxFeeValue;
+    const matchesExperience = !minExperience || experience >= minExperienceValue;
 
     return matchesSearch && matchesSpecialization && matchesHospital && matchesFee && matchesExperience;
   });
@@ -65,6 +78,13 @@ export default function BookDoctorProfile() {
     return `${year}-${month}-${day}`;
   };
 
+  const getLocalDateKey = (dateObj) => {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const toSlotDateTime = (dateKey, timeValue) => {
     if (!dateKey || !timeValue) return null;
     const [hours, minutes] = timeValue.split(":").map(Number);
@@ -76,7 +96,39 @@ export default function BookDoctorProfile() {
     return baseDate;
   };
 
+  const toMinutes = (timeValue) => {
+    if (!timeValue) return NaN;
+    const [hours, minutes] = timeValue.split(":").map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return NaN;
+    return hours * 60 + minutes;
+  };
+
+  const isSlotInRange = (slotTime, fromTime, toTime) => {
+    const slotMinutes = toMinutes(slotTime);
+    const fromMinutes = toMinutes(fromTime);
+    const toMinutesValue = toMinutes(toTime);
+    if (Number.isNaN(slotMinutes) || Number.isNaN(fromMinutes) || Number.isNaN(toMinutesValue)) {
+      return false;
+    }
+    return slotMinutes >= fromMinutes && slotMinutes < toMinutesValue;
+  };
+
+  const unavailableSlots = useMemo(() => {
+    return new Set([...bookedSlots, ...busySlots]);
+  }, [bookedSlots, busySlots]);
+
   const availableTimeSlots = useMemo(() => {
+    const selectedDateKey = dates[selectedDate]?.fullDate;
+    if (!selectedDateKey) return [];
+
+    const now = new Date();
+    return timeSlots.filter((timeValue) => {
+      const slotDateTime = toSlotDateTime(selectedDateKey, timeValue);
+      return slotDateTime && slotDateTime > now && !unavailableSlots.has(timeValue);
+    });
+  }, [dates, selectedDate, unavailableSlots]);
+
+  const displayTimeSlots = useMemo(() => {
     const selectedDateKey = dates[selectedDate]?.fullDate;
     if (!selectedDateKey) return [];
 
@@ -100,8 +152,7 @@ export default function BookDoctorProfile() {
     
     // If it's a relative path, construct full URL
     if (profileImage.startsWith('uploads/')) {
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      return `${baseURL}/${profileImage}`;
+      return `${API_BASE_ROOT}/${profileImage}`;
     }
     
     // If it's already a full URL, return as is
@@ -132,7 +183,7 @@ export default function BookDoctorProfile() {
       upcomingDates.push({
         day: nextDate.toLocaleDateString("en-US", { weekday: "short" }),
         date: nextDate.getDate(),
-        fullDate: nextDate.toISOString().split('T')[0],
+        fullDate: getLocalDateKey(nextDate),
       });
     }
     setDates(upcomingDates);
@@ -157,6 +208,9 @@ export default function BookDoctorProfile() {
     const fetchBookedSlots = async () => {
       if (!doctor?._id || dates.length === 0) {
         setBookedSlots(new Set());
+        setBusySlots(new Set());
+        setBusySlotReasonByTime({});
+        setBusySlotsForSelectedDate([]);
         return;
       }
 
@@ -169,19 +223,40 @@ export default function BookDoctorProfile() {
           .map((appointment) => appointment.time)
           .filter(Boolean);
 
-        setBookedSlots(new Set(slots));
+        const blockedForDate = (doctor.blockedSlots || []).filter((slot) => slot.date === selectedDateKey);
+        const blocked = blockedForDate.flatMap((slot) =>
+          timeSlots.filter((timeSlot) => isSlotInRange(timeSlot, slot.from, slot.to))
+        );
 
-        if (selectedTime && slots.includes(selectedTime)) {
+        const reasonMap = {};
+        blockedForDate.forEach((slot) => {
+          timeSlots.forEach((timeSlot) => {
+            if (isSlotInRange(timeSlot, slot.from, slot.to)) {
+              reasonMap[timeSlot] = slot.reason || "Doctor is busy";
+            }
+          });
+        });
+
+        setBookedSlots(new Set(slots));
+        setBusySlots(new Set(blocked));
+        setBusySlotReasonByTime(reasonMap);
+        setBusySlotsForSelectedDate(blockedForDate);
+
+        const blockedOrBookedSet = new Set([...slots, ...blocked]);
+        if (selectedTime && blockedOrBookedSet.has(selectedTime)) {
           setSelectedTime(null);
         }
       } catch (error) {
         console.error("Error fetching booked slots:", error);
         setBookedSlots(new Set());
+        setBusySlots(new Set());
+        setBusySlotReasonByTime({});
+        setBusySlotsForSelectedDate([]);
       }
     };
 
     fetchBookedSlots();
-  }, [doctor?._id, selectedDate, dates.length]);
+  }, [doctor?._id, selectedDate, dates, doctor]);
 
   useEffect(() => {
     if (selectedTime && !availableTimeSlots.includes(selectedTime)) {
@@ -468,31 +543,49 @@ export default function BookDoctorProfile() {
             <div className="mt-7">
               <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Select Time</h3>
               <div className="flex flex-wrap gap-2.5">
-                {availableTimeSlots.map((time, i) => (
+                {displayTimeSlots.map((time, i) => (
                   <button
                     key={i}
-                    disabled={bookedSlots.has(time)}
+                    disabled={unavailableSlots.has(time)}
+                    title={busySlots.has(time) ? `Busy: ${busySlotReasonByTime[time] || "Doctor is busy"}` : undefined}
                     className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                      bookedSlots.has(time)
+                      unavailableSlots.has(time)
                         ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
                         : selectedTime === time
                         ? "border-[#1694a4] bg-[#1694a4] text-white shadow-md shadow-[#1694a4]/30"
                         : "border-slate-200 bg-white text-slate-700 hover:border-[#1694a4]/40"
                     }`}
                     onClick={() => {
-                      if (!bookedSlots.has(time)) {
+                      if (!unavailableSlots.has(time)) {
                         setSelectedTime(time);
                       }
                     }}
                   >
                     {time}
-                    {bookedSlots.has(time) ? " (Booked)" : ""}
+                    {bookedSlots.has(time) ? " (Booked)" : busySlots.has(time) ? " (Busy)" : ""}
                   </button>
                 ))}
               </div>
-              {availableTimeSlots.length === 0 ? (
+              {busySlotsForSelectedDate.length > 0 ? (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  <p className="font-semibold">Doctor busy slots:</p>
+                  <ul className="mt-1 space-y-1">
+                    {busySlotsForSelectedDate.map((slot) => (
+                      <li key={slot._id || `${slot.date}-${slot.from}-${slot.to}`}>
+                        {slot.from} - {slot.to}: {slot.reason || "Doctor is busy"}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {displayTimeSlots.length === 0 ? (
                 <p className="mt-3 text-sm text-slate-500">
                   No future slots available for the selected date.
+                </p>
+              ) : null}
+              {displayTimeSlots.length > 0 && availableTimeSlots.length === 0 ? (
+                <p className="mt-3 text-sm text-slate-500">
+                  No doctor available for the selected date/time. Please choose another date.
                 </p>
               ) : null}
             </div>

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { doctorAPI } from "@/services/api.js";
+import { motion } from "framer-motion";
+import { API_BASE_ROOT, doctorAPI } from "@/services/api.js";
 
 // DoctorProfileCard.jsx
 export default function DoctorProfileCard() {
@@ -49,8 +50,7 @@ export default function DoctorProfileCard() {
     
     // If it's a relative path, construct full URL
     if (profileImage.startsWith('uploads/')) {
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      return `${baseURL}/${profileImage}`;
+      return `${API_BASE_ROOT}/${profileImage}`;
     }
     
     // If it's already a full URL, return as is
@@ -119,16 +119,21 @@ export default function DoctorProfileCard() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {doctors.map((doctor) => {
+        <div className="overflow-hidden rounded-3xl border border-white/60 bg-white/30 p-3">
+          <motion.div
+            className="flex w-max gap-4"
+            animate={{ x: ["-50%", "0%"] }}
+            transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+          >
+          {[...doctors, ...doctors].map((doctor, index) => {
             const doctorName = doctor.name || doctor.userId?.name || "Unknown";
             const specialization = doctor.specialization || "General Physician";
             const experience = doctor.experiance || 0;
 
             return (
               <article
-                key={doctor._id}
-                className="group relative overflow-hidden rounded-3xl border border-white/70 bg-white/75 p-5 shadow-[0_20px_50px_-24px_rgba(15,111,121,0.5)] backdrop-blur transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_70px_-24px_rgba(15,111,121,0.6)] md:p-6"
+                key={`${doctor._id}-${index}`}
+                className="group relative w-[320px] shrink-0 overflow-hidden rounded-3xl border border-white/70 bg-white/85 p-5 shadow-[0_20px_50px_-24px_rgba(15,111,121,0.5)] backdrop-blur transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_28px_70px_-24px_rgba(15,111,121,0.6)] md:w-[360px] md:p-6"
               >
                 <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#1694a4]/10 blur-2xl" />
 
@@ -181,6 +186,7 @@ export default function DoctorProfileCard() {
               </article>
             );
           })}
+          </motion.div>
         </div>
       </div>
     </section>

@@ -13,7 +13,9 @@ import {
   CheckCircle2,
   XCircle,
   FilePenLine,
+  LogOut,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Calendar from "./components/Calender";
 import { appointmentAPI, doctorAPI } from "../services/api";
 
@@ -53,6 +55,13 @@ export default function DoctorDashboard() {
   const [error, setError] = useState("");
   const [requestNotes, setRequestNotes] = useState({});
   const [updatingAppointmentId, setUpdatingAppointmentId] = useState("");
+  const [creatingFollowUp, setCreatingFollowUp] = useState(false);
+  const [followUpForm, setFollowUpForm] = useState({
+    patientId: "",
+    date: "",
+    time: "",
+    description: "",
+  });
 
   const [blockedSlotForm, setBlockedSlotForm] = useState({
     date: "",
@@ -62,6 +71,7 @@ export default function DoctorDashboard() {
   });
 
   const [blockedSlots, setBlockedSlots] = useState([]);
+  const navigate = useNavigate();
 
   const user = useMemo(() => {
     return JSON.parse(localStorage.getItem("user") || "{}");
@@ -72,10 +82,11 @@ export default function DoctorDashboard() {
     setError("");
 
     try {
-      const [dashboardResponse, patientsResponse, doctorsResponse] = await Promise.all([
+      const [dashboardResponse, patientsResponse, doctorsResponse, blockedSlotsResponse] = await Promise.all([
         appointmentAPI.getDoctorDashboard(),
         doctorAPI.getMyPatients(),
         doctorAPI.getAllDoctors(),
+        doctorAPI.getMyBlockedSlots(),
       ]);
 
       setAppointments(dashboardResponse.data?.appointments || []);
@@ -86,6 +97,7 @@ export default function DoctorDashboard() {
         (doctor) => String(doctor?.userId?._id) === String(user?._id)
       );
       setDoctorProfile(matchedDoctor || null);
+      setBlockedSlots(blockedSlotsResponse.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load doctor dashboard data.");
     } finally {
@@ -170,6 +182,23 @@ export default function DoctorDashboard() {
     });
   }, [patients, appointmentRows]);
 
+  const followUpEligiblePatients = useMemo(() => {
+    const map = new Map();
+
+    appointmentRows
+      .filter((appointment) => appointment.status === "completed")
+      .forEach((appointment) => {
+        const id = String(appointment.patientId || "");
+        if (!id || map.has(id)) return;
+        map.set(id, {
+          id,
+          name: appointment.patient || "Unknown",
+        });
+      });
+
+    return Array.from(map.values());
+  }, [appointmentRows]);
+
   const stats = useMemo(() => {
     return [
       {
@@ -212,6 +241,11 @@ export default function DoctorDashboard() {
     `${statsPayload?.totalAppointments ?? appointments.length} total appointments tracked`,
   ];
 
+  const followUpTimeOptions = [
+    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
+  ];
+
   const handleRequestNoteChange = (id, note) => {
     setRequestNotes((prev) => ({ ...prev, [id]: note }));
   };
@@ -236,29 +270,86 @@ export default function DoctorDashboard() {
     }
   };
 
-  const handleBlockedSlotSubmit = (event) => {
+  const handleBlockedSlotSubmit = async (event) => {
     event.preventDefault();
 
     if (!blockedSlotForm.date || !blockedSlotForm.from || !blockedSlotForm.to) {
       return;
     }
 
-    setBlockedSlots((prev) => [
-      {
-        id: Date.now(),
+    try {
+      const response = await doctorAPI.addBlockedSlot({
         date: blockedSlotForm.date,
         from: blockedSlotForm.from,
         to: blockedSlotForm.to,
-        reason: blockedSlotForm.reason || "Busy",
-      },
-      ...prev,
-    ]);
+        reason: blockedSlotForm.reason,
+      });
 
-    setBlockedSlotForm({ date: "", from: "", to: "", reason: "" });
+      setBlockedSlots(response.data || []);
+      setBlockedSlotForm({ date: "", from: "", to: "", reason: "" });
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to add blocked slot.");
+    }
   };
 
-  const removeBlockedSlot = (id) => {
-    setBlockedSlots((prev) => prev.filter((item) => item.id !== id));
+  const removeBlockedSlot = async (id) => {
+    try {
+      const response = await doctorAPI.deleteBlockedSlot(id);
+      setBlockedSlots(response.data || []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to remove blocked slot.");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    window.dispatchEvent(new Event("auth-changed"));
+    navigate("/login");
+  };
+
+  const handleCreateFollowUp = async (event) => {
+    event.preventDefault();
+
+    if (!doctorProfile?._id) {
+      setError("Doctor profile not loaded.");
+      return;
+    }
+
+    if (!followUpForm.patientId || !followUpForm.date || !followUpForm.time) {
+      setError("Please select patient, date, and time for follow-up visit.");
+      return;
+    }
+
+    if (followUpEligiblePatients.length === 0) {
+      setError("No eligible patient found. Only previously visited patients can be selected.");
+      return;
+    }
+
+    try {
+      setCreatingFollowUp(true);
+      setError("");
+
+      await appointmentAPI.createAppointment({
+        doctorId: doctorProfile._id,
+        patientId: followUpForm.patientId,
+        appointmentDate: followUpForm.date,
+        time: followUpForm.time,
+        description: followUpForm.description?.trim() || "Doctor follow-up visit",
+      });
+
+      setFollowUpForm({
+        patientId: "",
+        date: "",
+        time: "",
+        description: "",
+      });
+
+      await fetchDashboardData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create follow-up visit.");
+    } finally {
+      setCreatingFollowUp(false);
+    }
   };
 
   if (loading) {
@@ -291,6 +382,14 @@ export default function DoctorDashboard() {
                   className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-100"
                 >
                   Refresh Dashboard
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600"
+                >
+                  <LogOut size={16} />
+                  Logout
                 </button>
               </div>
             </div>
@@ -522,6 +621,93 @@ export default function DoctorDashboard() {
           <aside className="space-y-6">
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+                <CalendarDays size={18} className="text-emerald-700" />
+                Book Follow-up Visit
+              </h2>
+
+              <form className="space-y-3" onSubmit={handleCreateFollowUp}>
+                <label className="block text-xs font-medium text-slate-600">
+                  Patient
+                  <select
+                    value={followUpForm.patientId}
+                    onChange={(event) =>
+                      setFollowUpForm((prev) => ({ ...prev, patientId: event.target.value }))
+                    }
+                    disabled={followUpEligiblePatients.length === 0}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-300"
+                  >
+                    <option value="">Select visited patient</option>
+                    {followUpEligiblePatients.map((patient) => (
+                      <option key={patient.id} value={patient.id}>
+                        {patient.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {followUpEligiblePatients.length === 0 ? (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    No patient has completed a visit yet. Follow-up can be booked only after first completed visit.
+                  </p>
+                ) : null}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-xs font-medium text-slate-600">
+                    Date
+                    <input
+                      type="date"
+                      value={followUpForm.date}
+                      onChange={(event) =>
+                        setFollowUpForm((prev) => ({ ...prev, date: event.target.value }))
+                      }
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-300"
+                    />
+                  </label>
+
+                  <label className="block text-xs font-medium text-slate-600">
+                    Time
+                    <select
+                      value={followUpForm.time}
+                      onChange={(event) =>
+                        setFollowUpForm((prev) => ({ ...prev, time: event.target.value }))
+                      }
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-300"
+                    >
+                      <option value="">Select time</option>
+                      {followUpTimeOptions.map((time) => (
+                        <option key={time} value={time}>
+                          {time}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <label className="block text-xs font-medium text-slate-600">
+                  Note
+                  <textarea
+                    rows={2}
+                    value={followUpForm.description}
+                    onChange={(event) =>
+                      setFollowUpForm((prev) => ({ ...prev, description: event.target.value }))
+                    }
+                    placeholder="Follow-up purpose"
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-300"
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={creatingFollowUp}
+                  className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {creatingFollowUp ? "Booking..." : "Book Upcoming Visit"}
+                </button>
+              </form>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                 <CalendarClock size={18} className="text-blue-700" />
                 Block Busy Time
               </h2>
@@ -598,14 +784,14 @@ export default function DoctorDashboard() {
                 ) : null}
 
                 {blockedSlots.map((slot) => (
-                  <div key={slot.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div key={slot._id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <p className="text-sm font-medium text-slate-800">
                       {new Date(slot.date).toLocaleDateString()} • {slot.from} - {slot.to}
                     </p>
                     <p className="text-xs text-slate-600">{slot.reason}</p>
                     <button
                       type="button"
-                      onClick={() => removeBlockedSlot(slot.id)}
+                      onClick={() => removeBlockedSlot(slot._id)}
                       className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700"
                     >
                       <XCircle size={14} />

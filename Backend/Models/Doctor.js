@@ -7,7 +7,15 @@ const doctorSchema = new mongoose.Schema({
     experience: String,
     licenceNo: String,
     hospitalName: String,
-    fees: Number
+    fees: Number,
+    blockedSlots: [
+        {
+            date: { type: String, required: true }, // YYYY-MM-DD
+            from: { type: String, required: true }, // HH:mm
+            to: { type: String, required: true },   // HH:mm
+            reason: { type: String, default: 'Busy' }
+        }
+    ]
 });
 
 module.exports = mongoose.models.Doctor || mongoose.model('Doctor', doctorSchema);

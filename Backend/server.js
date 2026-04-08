@@ -39,8 +39,28 @@ const createUploadDirectories = () => {
 createUploadDirectories();
 
 const app = express();
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176'
+].filter(Boolean);
+
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5176', 'http://localhost:5175'],
+    origin: (origin, callback) => {
+      // Allow non-browser requests (like Postman/curl)
+      if (!origin) return callback(null, true);
+
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+
+      if (isAllowed) return callback(null, true);
+
+      return callback(new Error('CORS not allowed for this origin'));
+    },
     credentials: true
 }));
 

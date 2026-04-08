@@ -5,6 +5,13 @@ const User = require('../Models/User');
 const Appointment = require('../Models/Appointments');
 const multer = require('multer');
 
+const toMinutes = (timeValue) => {
+    if (!timeValue || typeof timeValue !== 'string') return NaN;
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return NaN;
+    return hours * 60 + minutes;
+};
+
 // Get all doctors (public route)
 exports.getAllDoctors = async (req, res) => {
     try {
@@ -31,6 +38,7 @@ exports.getAllDoctors = async (req, res) => {
                 licenceNo: doctor.licenceNo,
                 HospitalName: doctor.hospitalName, // Fix field name
                 fees: doctor.fees,
+                blockedSlots: doctor.blockedSlots || [],
                 name: doctor.userId?.name || 'Unknown',
                 email: doctor.userId?.email || '',
                 phoneNo: doctor.userId?.phoneNo || '',
@@ -124,5 +132,88 @@ exports.deleteMyPatientRecord = async (req, res) => {
     } catch (error) {
         console.error('Error deleting patient record:', error);
         return res.status(500).json({ message: "Failed to delete patient record", error: error.message });
+    }
+};
+
+exports.getMyBlockedSlots = async (req, res) => {
+    try {
+        const doctor = await Doctor.findOne({ userId: req.user.id });
+        if (!doctor) {
+            return res.status(404).json({ message: 'Doctor not found' });
+        }
+
+        return res.status(200).json(doctor.blockedSlots || []);
+    } catch (error) {
+        console.error('Error fetching blocked slots:', error);
+        return res.status(500).json({ message: 'Failed to fetch blocked slots', error: error.message });
+    }
+};
+
+exports.addBlockedSlot = async (req, res) => {
+    try {
+        const doctor = await Doctor.findOne({ userId: req.user.id });
+        if (!doctor) {
+            return res.status(404).json({ message: 'Doctor not found' });
+        }
+
+        const { date, from, to, reason } = req.body;
+        if (!date || !from || !to) {
+            return res.status(400).json({ message: 'date, from and to are required' });
+        }
+
+        const fromMinutes = toMinutes(from);
+        const toMinutesValue = toMinutes(to);
+        if (Number.isNaN(fromMinutes) || Number.isNaN(toMinutesValue) || fromMinutes >= toMinutesValue) {
+            return res.status(400).json({ message: 'Invalid blocked slot time range' });
+        }
+
+        const overlaps = (doctor.blockedSlots || []).some((slot) => {
+            if (slot.date !== date) return false;
+            const existingFrom = toMinutes(slot.from);
+            const existingTo = toMinutes(slot.to);
+            return fromMinutes < existingTo && toMinutesValue > existingFrom;
+        });
+
+        if (overlaps) {
+            return res.status(409).json({ message: 'Blocked slot overlaps with an existing slot' });
+        }
+
+        doctor.blockedSlots.push({
+            date,
+            from,
+            to,
+            reason: (typeof reason === 'string' && reason.trim()) ? reason.trim() : 'Busy',
+        });
+
+        await doctor.save();
+        return res.status(201).json(doctor.blockedSlots || []);
+    } catch (error) {
+        console.error('Error adding blocked slot:', error);
+        return res.status(500).json({ message: 'Failed to add blocked slot', error: error.message });
+    }
+};
+
+exports.deleteBlockedSlot = async (req, res) => {
+    try {
+        const doctor = await Doctor.findOne({ userId: req.user.id });
+        if (!doctor) {
+            return res.status(404).json({ message: 'Doctor not found' });
+        }
+
+        const { slotId } = req.params;
+        const initialLength = (doctor.blockedSlots || []).length;
+        doctor.blockedSlots = (doctor.blockedSlots || []).filter(
+            (slot) => String(slot._id) !== String(slotId)
+        );
+
+        if (doctor.blockedSlots.length === initialLength) {
+            return res.status(404).json({ message: 'Blocked slot not found' });
+        }
+
+        await doctor.save();
+        return res.status(200).json(doctor.blockedSlots || []);
+    } catch (error) {
+        console.error('Error deleting blocked slot:', error);
+        return res.status(500).json({ message: 'Failed to delete blocked slot', error: error.message });
     }
 };

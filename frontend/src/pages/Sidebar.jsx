@@ -3,13 +3,12 @@ import {
   BellIcon,
   Cog6ToothIcon,
   DocumentTextIcon,
-  ClipboardDocumentCheckIcon,
   ChatBubbleLeftRightIcon,
   ArrowRightOnRectangleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/solid";
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Sidebar({ show, onClose }) {
   const [testResultCount] = useState(5);
@@ -29,7 +28,12 @@ export default function Sidebar({ show, onClose }) {
   }, []);
 
   const handleMyAppointments = () => {
-    navigate("/patientDashboard");
+    navigate("/patientDashboard?section=appointments");
+    onClose();
+  };
+
+  const goToPatientSection = (section) => {
+    navigate(`/patientDashboard?section=${section}`);
     onClose();
   };
 
@@ -116,23 +120,31 @@ export default function Sidebar({ show, onClose }) {
                 </li>
 
                 <li>
-                  <Link to="/notifications" onClick={onClose} className={menuItemClass}>
+                  <button
+                    type="button"
+                    onClick={() => goToPatientSection("notifications")}
+                    className={menuItemClass}
+                  >
                     <BellIcon className="h-5 w-5 text-rose-500" />
                     Notifications
-                  </Link>
+                  </button>
                 </li>
 
                 <li>
-                  <Link to="/settings" onClick={onClose} className={menuItemClass}>
+                  <button
+                    type="button"
+                    onClick={() => goToPatientSection("settings")}
+                    className={menuItemClass}
+                  >
                     <Cog6ToothIcon className="h-5 w-5 text-emerald-500" />
                     Settings
-                  </Link>
+                  </button>
                 </li>
 
                 <li>
-                  <Link
-                    to="/test-results"
-                    onClick={onClose}
+                  <button
+                    type="button"
+                    onClick={() => goToPatientSection("overview")}
                     className={`${menuItemClass} justify-between`}
                   >
                     <div className="flex items-center gap-3">
@@ -145,21 +157,21 @@ export default function Sidebar({ show, onClose }) {
                         {testResultCount}
                       </span>
                     )}
-                  </Link>
+                  </button>
                 </li>
 
                 <li>
-                  <Link to="/prescriptions" onClick={onClose} className={menuItemClass}>
-                    <ClipboardDocumentCheckIcon className="h-5 w-5 text-teal-500" />
-                    Prescription
-                  </Link>
-                </li>
-
-                <li>
-                  <Link to="/feedback" onClick={onClose} className={menuItemClass}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate("/contact");
+                      onClose();
+                    }}
+                    className={menuItemClass}
+                  >
                     <ChatBubbleLeftRightIcon className="h-5 w-5 text-amber-500" />
                     Feedback
-                  </Link>
+                  </button>
                 </li>
               </ul>
             </nav>
