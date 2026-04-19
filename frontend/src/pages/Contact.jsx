@@ -3,6 +3,7 @@ import Navbar from "../Navbar";
 import Footer from "../Footer";
 import { useState } from "react";
 import { toast } from 'react-toastify';
+import contactHeroImage from "../assets/images/29a183e94cfaa1c70f9923b9dff53e831733a031.jpg";
 
 //Handling Contacts
 const Contact = () => {
@@ -43,9 +44,9 @@ const Contact = () => {
       <div>
         <img
           className="w-full h-180"
-                          src="/src/assets/images/29a183e94cfaa1c70f9923b9dff53e831733a031.jpg"
+          src={contactHeroImage}
           alt=""
-          srcset=""
+          srcSet=""
         />
       </div>
       <div className="w-full bg-white rounded-none shadow-none py-10 px-4 sm:px-12 md:px-28">

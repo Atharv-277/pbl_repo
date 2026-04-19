@@ -21,7 +21,11 @@
 
 1. **Environment Variables**:
    ```env
+   # Preferred (full API base including /api)
    VITE_API_URL=https://your-backend-url.com/api
+
+   # Optional alternative (without /api)
+   # VITE_API_BASE_URL=https://your-backend-url.com
    ```
 
 2. **Build Command**:
@@ -37,9 +41,17 @@
 
 1. **Environment Variables**:
    ```env
-   MONGODB_URI=your_mongodb_connection_string
+   # Either variable name is supported by the app
+   MONGO_URI=your_mongodb_connection_string
+   # MONGODB_URI=your_mongodb_connection_string
+
    JWT_SECRET=your_jwt_secret
    PORT=5000
+
+   # Netlify production URL(s) allowed for CORS
+   FRONTEND_URL=https://your-site.netlify.app
+   # Optional comma-separated list:
+   # FRONTEND_URLS=https://your-site.netlify.app,https://preview-site.netlify.app
    ```
 
 2. **Start Command**:

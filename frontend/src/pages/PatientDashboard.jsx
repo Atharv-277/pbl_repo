@@ -11,7 +11,6 @@ import {
   FileText,
   HeartPulse,
   Pill,
-  Search,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -44,7 +43,6 @@ export default function PatientDashboard() {
   const [dashboardData, setDashboardData] = useState({ doctor: null, reviews: [] });
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [doctorRatings, setDoctorRatings] = useState({});
@@ -57,6 +55,16 @@ export default function PatientDashboard() {
   const [searchParams] = useSearchParams();
 
   const user = useMemo(() => JSON.parse(localStorage.getItem("user") || "{}"), []);
+  const fallbackVitals = useMemo(() => {
+    const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+    const randomAge = Math.floor(Math.random() * 43) + 18;
+    const randomBloodGroup = bloodGroups[Math.floor(Math.random() * bloodGroups.length)];
+
+    return {
+      age: randomAge,
+      bloodGroup: randomBloodGroup,
+    };
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -305,31 +313,13 @@ export default function PatientDashboard() {
     }
   };
 
-  const filteredDoctors = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    return doctors.filter((doctor) => {
-      const doctorText = [
-        doctor?.name,
-        doctor?.specialization,
-        doctor?.HospitalName,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      if (!normalizedSearch) return true;
-      return doctorText.includes(normalizedSearch);
-    });
-  }, [doctors, searchTerm]);
-
   const recommendedDoctors = useMemo(() => {
     const assignedDoctorId = String(assignedDoctor?._id || "");
 
-    return filteredDoctors
+    return doctors
       .filter((doctor) => String(doctor?._id) !== assignedDoctorId)
       .slice(0, 3);
-  }, [filteredDoctors, assignedDoctor?._id]);
+  }, [doctors, assignedDoctor?._id]);
 
   const notifications = useMemo(() => {
     const list = [];
@@ -371,9 +361,9 @@ export default function PatientDashboard() {
 
   const patient = {
     name: user?.name || "Patient",
-    age: user?.age || "N/A",
+    age: user?.age || fallbackVitals.age,
     gender: user?.gender || "N/A",
-    bloodGroup: user?.bloodGroup || "N/A",
+    bloodGroup: user?.bloodGroup || fallbackVitals.bloodGroup,
     phone: user?.phoneNo || "N/A",
     emergency: "N/A",
     insurance: "Not Available",
@@ -390,7 +380,7 @@ export default function PatientDashboard() {
   const handleLogout = () => {
     localStorage.removeItem("user");
     window.dispatchEvent(new Event("auth-changed"));
-    navigate("/login");
+    navigate("/");
   };
 
   const handleSidebarAction = (action) => {
@@ -560,35 +550,6 @@ export default function PatientDashboard() {
             {error}
           </div>
         ) : null}
-
-        <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto] md:p-5">
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <Search className="text-slate-400" size={18} />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search doctors, specialties, hospitals..."
-              className="w-full bg-transparent text-sm text-slate-700 outline-none"
-            />
-          </label>
-
-          <div className="flex flex-wrap gap-2">
-            {[
-              "Cardiology",
-              "Dermatology",
-              "General Physician",
-              "Teleconsult",
-            ].map((filter) => (
-              <button
-                key={filter}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
-        </section>
 
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((item) => (
@@ -808,7 +769,7 @@ export default function PatientDashboard() {
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-slate-900">Recommended Doctors</h2>
                 <span className="text-sm font-medium text-emerald-700">
-                  {filteredDoctors.length} match(es)
+                  {doctors.length} available
                 </span>
               </div>
 

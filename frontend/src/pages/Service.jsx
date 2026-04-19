@@ -2,6 +2,8 @@ import React from "react";
 import Navbar from "../Navbar";
 import Faq from "./components/Faq";
 import Footer from "../Footer";
+import registerImage from "../assets/images/register.png";
+import securityImage from "../assets/images/security.jpg";
 
 export default function Service() {
     return (
@@ -14,7 +16,7 @@ export default function Service() {
                 className="w-full h-[85vh] bg-cover mt-15 bg-center flex flex-col justify-center items-start px-10 md:px-28"
                 style={{
                     opacity: 1,
-                    backgroundImage: `url('/src/assets/images/register.png')`,
+                    backgroundImage: `url(${registerImage})`,
                 }}
             >
                 <h1 className="text-white mt-50 text-4xl md:text-5xl font-bold mb-4">
@@ -40,7 +42,7 @@ export default function Service() {
                 {/* Image */}
                 <div className="md:w-1/2 w-full mb-8 md:mb-0">
                     <img
-                        src="/src/assets/images/security.jpg" // Replace with your actual image path
+                        src={securityImage}
                         alt="Data Security"
                         className="w-full h-auto rounded-lg shadow-md"
                     />

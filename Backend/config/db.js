@@ -2,7 +2,12 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/health_management', {});
+        const mongoUri =
+            process.env.MONGO_URI ||
+            process.env.MONGODB_URI ||
+            'mongodb://localhost:27017/health_management';
+
+        await mongoose.connect(mongoUri, {});
         console.log('MongoDB connected');
     } catch (error) {
         console.error('DB Connection Failed:', error.message);

@@ -1,7 +1,14 @@
 import axios from 'axios';
 
-export const API_BASE_ROOT = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
-export const API_BASE_URL = import.meta.env.VITE_API_URL || `${API_BASE_ROOT}/api`;
+export const API_BASE_ROOT =
+    import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '');
+
+export const API_BASE_URL =
+    import.meta.env.VITE_API_URL || (API_BASE_ROOT ? `${API_BASE_ROOT}/api` : '/api');
+
+if (import.meta.env.PROD && !import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_BASE_URL) {
+    console.warn('[api] VITE_API_URL or VITE_API_BASE_URL is not set. Falling back to /api.');
+}
 
 // Axios instance - deployment ready
 const api = axios.create({
@@ -30,7 +37,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401) {
             localStorage.removeItem('user');
             // Only redirect to login if we're not already on a public page
-            const publicPages = ['/', '/login', '/register', '/contact'];
+            const publicPages = ['/', '/login', '/register', '/contact', '/service'];
             const currentPath = window.location.pathname;
             if (!publicPages.includes(currentPath)) {
                 window.location.href = '/login';

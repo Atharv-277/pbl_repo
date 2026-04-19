@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { FaCamera } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from "../services/api";
+import registerImage from "../assets/images/register.png";
 
 export default function Register() {
   const [userType, setUserType] = useState("patient");
@@ -75,7 +76,7 @@ export default function Register() {
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden">
       {/* Fullscreen blurred background image with less blur */}
       <img
-                        src="/src/assets/images/register.png"
+        src={registerImage}
         alt="Register Background"
         className="absolute inset-0 w-full h-full object-cover blur-[2px] scale-105 z-0"
         style={{ minHeight: '100vh' }}

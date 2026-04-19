@@ -12,6 +12,14 @@ const reviewRoutes = require('./Routes/reviewRoutes');
 const { errorHandler } = require('./Middleware/errorMiddleware');
 
 dotenv.config();
+
+const requiredEnvVars = ['JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
+if (missingEnvVars.length > 0) {
+  console.error(`Missing required environment variable(s): ${missingEnvVars.join(', ')}`);
+  process.exit(1);
+}
+
 connectDB();
 
 // Create uploads directories if they don't exist
@@ -39,8 +47,14 @@ const createUploadDirectories = () => {
 createUploadDirectories();
 
 const app = express();
+const configuredOrigins = [process.env.FRONTEND_URL, process.env.FRONTEND_URLS]
+  .filter(Boolean)
+  .flatMap((value) => value.split(','))
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  ...configuredOrigins,
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5174',
@@ -48,16 +62,27 @@ const allowedOrigins = [
   'http://localhost:5176'
 ].filter(Boolean);
 
+if (process.env.NODE_ENV === 'production' && configuredOrigins.length === 0) {
+  console.warn('FRONTEND_URL/FRONTEND_URLS is not set. Allowing trusted deployment domains (Netlify/Vercel).');
+}
+
+const deploymentDomainPatterns = [
+  /^https:\/\/[a-zA-Z0-9-]+\.netlify\.app$/,
+  /^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/,
+];
+
+const isAllowedOrigin = (origin) => {
+  if (allowedOrigins.includes(origin)) return true;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return true;
+  return deploymentDomainPatterns.some((pattern) => pattern.test(origin));
+};
+
 app.use(cors({
     origin: (origin, callback) => {
       // Allow non-browser requests (like Postman/curl)
       if (!origin) return callback(null, true);
 
-      const isAllowed =
-        allowedOrigins.includes(origin) ||
-        /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
-
-      if (isAllowed) return callback(null, true);
+      if (isAllowedOrigin(origin)) return callback(null, true);
 
       return callback(new Error('CORS not allowed for this origin'));
     },
@@ -65,7 +90,11 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorRoutes);
