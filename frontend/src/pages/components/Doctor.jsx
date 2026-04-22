@@ -12,6 +12,16 @@ export default function DoctorProfileCard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const handleBookAppointment = (doctor) => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!user?._id) {
+      navigate("/login");
+      return;
+    }
+
+    navigate("/bookAppointment", { state: { doctor } });
+  };
+
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
@@ -177,7 +187,7 @@ export default function DoctorProfileCard() {
                   </div>
 
                   <button
-                    onClick={() => navigate("/bookAppointment", { state: { doctor } })}
+                    onClick={() => handleBookAppointment(doctor)}
                     className="w-full cursor-pointer rounded-full bg-gradient-to-r from-[#1694a4] to-[#0f6f79] px-4 py-2.5 text-sm font-semibold tracking-wide text-white shadow-lg shadow-[#1694a4]/30 transition duration-300 hover:from-[#147c88] hover:to-[#0b5b63] group-hover:shadow-[#0f6f79]/35 md:text-base"
                   >
                     Book Appointment

@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
 import DoctorDashboard from "./pages/DoctorDash";
 import PatientDashboard from "./pages/PatientDashboard";
+import PatientSettings from "./pages/PatientSettings";
 import Login from "./pages/Login";
 import Register from "./pages/Signup";
 import Calendar from "./pages/components/Calender";
@@ -26,6 +27,7 @@ const App = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/doctorDashboard" element={<DoctorDashboard />} />
         <Route path="/patientDashboard" element={<PatientDashboard />} />
+        <Route path="/patientSettings" element={<PatientSettings />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/calendar" element={<Calendar />} />

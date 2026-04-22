@@ -1,6 +1,6 @@
 // Register.jsx
 import { useState, useRef } from "react";
-import { FaCamera } from "react-icons/fa";
+import { FaCamera, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from "../services/api";
 import registerImage from "../assets/images/register.png";
@@ -10,6 +10,7 @@ export default function Register() {
   const [fullname, setfullname] = useState("");
   const [phone, setphone] = useState("");
   const [password, setpassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [experience, setexperience] = useState("");
   const [qualification, setqualification] = useState("");
   const [address, setaddress] = useState("");
@@ -103,7 +104,17 @@ export default function Register() {
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <input required value={fullname} onChange={(e)=>{setfullname(e.target.value);}} type="text" placeholder="Full Name" className="input border-gray-300 rounded-lg p-3" />
           <input required value={email} onChange={(e)=>{setemail(e.target.value);}} type="email" placeholder="Email" className="input border-gray-300 rounded-lg p-3" />
-          <input required value={password} onChange={(e)=>{setpassword(e.target.value);}} type="password" placeholder="Password" className="input border-gray-300 rounded-lg p-3" />
+          <div className="relative">
+            <input required value={password} onChange={(e)=>{setpassword(e.target.value);}} type={showPassword ? "text" : "password"} placeholder="Password" className="input border-gray-300 rounded-lg p-3 w-full pr-10" />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
+          </div>
           <input value={phone} onChange={(e)=>{setphone(e.target.value);}} type="text" placeholder="Phone Number" className="input border-gray-300 rounded-lg p-3" />
           <select required value={gender} onChange={(e) => setGender(e.target.value)} className="input border-gray-300 rounded-lg p-3">
             <option value="">Select Gender</option>

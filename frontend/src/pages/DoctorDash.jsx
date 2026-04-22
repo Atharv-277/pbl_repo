@@ -47,6 +47,9 @@ const getRiskStyles = (risk) => {
 export default function DoctorDashboard() {
   const [selectedDate, setSelectedDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [hideCompleted, setHideCompleted] = useState(false);
+  const [hideCancelled, setHideCancelled] = useState(false);
+  const [hiddenAppointmentIds, setHiddenAppointmentIds] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [doctorProfile, setDoctorProfile] = useState(null);
@@ -120,6 +123,7 @@ export default function DoctorDashboard() {
         age: patientUser?.age || "N/A",
         gender: patientUser?.gender || "N/A",
         appointmentDate: item?.appointmentDate,
+        createdAt: item?.createdAt,
         dateKey: toDateKey(item?.appointmentDate),
         time: item?.time || "Time not set",
         status: item?.status || "scheduled",
@@ -130,14 +134,23 @@ export default function DoctorDashboard() {
   const filteredAppointments = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
-    return appointmentRows.filter((item) => {
-      const dateMatches = selectedDate ? item.dateKey === selectedDate : true;
-      const searchMatches = normalizedSearch
-        ? `${item.patient} ${item.issue}`.toLowerCase().includes(normalizedSearch)
-        : true;
-      return dateMatches && searchMatches;
-    });
-  }, [appointmentRows, selectedDate, searchTerm]);
+    return appointmentRows
+      .filter((item) => {
+        const dateMatches = selectedDate ? item.dateKey === selectedDate : true;
+        const hideCompletedMatch = hideCompleted ? item.status !== "completed" : true;
+        const hideCancelledMatch = hideCancelled ? item.status !== "cancelled" : true;
+        const hiddenMatch = !hiddenAppointmentIds.includes(String(item.id));
+        const searchMatches = normalizedSearch
+          ? `${item.patient} ${item.issue}`.toLowerCase().includes(normalizedSearch)
+          : true;
+        return dateMatches && hideCompletedMatch && hideCancelledMatch && hiddenMatch && searchMatches;
+      })
+      .sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.appointmentDate || 0).getTime();
+        const timeB = new Date(b.createdAt || b.appointmentDate || 0).getTime();
+        return timeB - timeA;
+      });
+  }, [appointmentRows, selectedDate, searchTerm, hideCompleted, hideCancelled, hiddenAppointmentIds]);
 
   const pendingRequests = useMemo(() => {
     return appointmentRows.filter((item) => item.status === "scheduled");
@@ -304,7 +317,7 @@ export default function DoctorDashboard() {
   const handleLogout = () => {
     localStorage.removeItem("user");
     window.dispatchEvent(new Event("auth-changed"));
-    navigate("/login");
+    navigate("/");
   };
 
   const handleCreateFollowUp = async (event) => {
@@ -456,6 +469,36 @@ export default function DoctorDashboard() {
                 </label>
               </div>
 
+              <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={hideCompleted}
+                    onChange={(event) => setHideCompleted(event.target.checked)}
+                    className="accent-emerald-600"
+                  />
+                  Hide completed
+                </label>
+
+                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={hideCancelled}
+                    onChange={(event) => setHideCancelled(event.target.checked)}
+                    className="accent-emerald-600"
+                  />
+                  Hide cancelled
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => setHiddenAppointmentIds([])}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Show hidden ({hiddenAppointmentIds.length})
+                </button>
+              </div>
+
               <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
                 <Calendar
                   appointments={appointmentRows}
@@ -491,6 +534,24 @@ export default function DoctorDashboard() {
                           {formatStatus(appointment.status)}
                         </span>
                       </div>
+
+                      {(appointment.status === "completed" || appointment.status === "cancelled") ? (
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setHiddenAppointmentIds((prev) =>
+                                prev.includes(String(appointment.id))
+                                  ? prev
+                                  : [...prev, String(appointment.id)]
+                              )
+                            }
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Remove from this list
+                          </button>
+                        </div>
+                      ) : null}
                     </article>
                   ))}
                 </div>

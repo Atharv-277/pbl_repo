@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   ShieldCheck,
@@ -10,6 +10,17 @@ import {
 } from "lucide-react";
 import heroImage from "../../assets/images/her.jpg";
 const HeroSection = () => {
+  const navigate = useNavigate();
+
+  const handleBookAppointmentClick = () => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user?._id) {
+      navigate("/bookAppointment");
+      return;
+    }
+    navigate("/login");
+  };
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-[#f8fffe] via-[#eefcf8] to-[#f4fbff] py-16 md:py-24">
       {/* Background Blurs */}
@@ -51,13 +62,14 @@ const HeroSection = () => {
 
             {/* Buttons */}
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
-              <Link
-                to="/login"
+              <button
+                type="button"
+                onClick={handleBookAppointmentClick}
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-500 px-7 py-3.5 font-semibold text-white shadow-[0_10px_30px_rgba(13,148,136,0.25)] transition duration-300 hover:scale-[1.03] hover:shadow-[0_14px_35px_rgba(6,182,212,0.25)]"
               >
                 <CalendarDays className="w-5 h-5" />
                 Book Appointment
-              </Link>
+              </button>
 
               <button className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-white text-slate-800 px-7 py-3.5 font-semibold shadow-sm transition duration-300 hover:bg-teal-50 hover:border-teal-300">
                 <HeartPulse className="w-5 h-5 text-teal-600" />

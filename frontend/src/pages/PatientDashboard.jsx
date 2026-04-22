@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { appointmentAPI, doctorAPI, patientAPI, reviewAPI } from "../services/api";
+import PatientDashboardSidebar from "./components/PatientDashboardSidebar";
 
 const formatStatus = (status) => {
   if (status === "scheduled") return "Scheduled";
@@ -389,11 +390,15 @@ export default function PatientDashboard() {
       return;
     }
 
+    if (action === "settings") {
+      navigate("/patientSettings");
+      return;
+    }
+
     const sectionMap = {
       overview: "patient-overview",
       appointments: "appointments-section",
       notifications: "notifications-section",
-      settings: "settings-section",
     };
 
     const sectionId = sectionMap[action];
@@ -436,7 +441,6 @@ export default function PatientDashboard() {
       overview: "patient-overview",
       appointments: "appointments-section",
       notifications: "notifications-section",
-      settings: "settings-section",
     };
 
     const targetId = sectionMap[section];
@@ -460,37 +464,11 @@ export default function PatientDashboard() {
   return (
     <div className="min-h-screen bg-slate-100 px-4 py-6 md:px-8 md:py-8">
       <div className="mx-auto flex w-full max-w-7xl gap-6">
-        <aside className="hidden w-72 shrink-0 self-start rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:block lg:sticky lg:top-6">
-          <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-700 p-4 text-white">
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-xl bg-white/15 text-lg font-semibold">
-                {patient.name?.charAt(0)?.toUpperCase() || "P"}
-              </div>
-              <div>
-                <p className="text-sm text-white/80">Signed in as</p>
-                <p className="font-semibold">{patient.name}</p>
-              </div>
-            </div>
-          </div>
-
-          <nav className="mt-5 space-y-2">
-            {sidebarOptions.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => handleSidebarAction(item.key)}
-                className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
-                  item.key === "logout"
-                    ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ))}
-          </nav>
-        </aside>
+        <PatientDashboardSidebar
+          patientName={patient.name}
+          sidebarOptions={sidebarOptions}
+          onAction={handleSidebarAction}
+        />
 
         <div className="flex-1 space-y-6">
         <section
@@ -886,56 +864,6 @@ export default function PatientDashboard() {
             </div>
 
           </aside>
-        </section>
-
-        <section id="settings-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-            <Settings className="text-slate-700" size={18} />
-            Settings
-          </h2>
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
-              <div className="grid h-14 w-14 place-items-center rounded-xl bg-slate-100">
-                <UserRound className="text-slate-700" size={24} />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">{patient.name}</p>
-                <p className="text-xs text-slate-500">Patient ID: {patient.id}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 p-4">
-                <h3 className="mb-2 text-sm font-semibold text-slate-900">Profile Summary</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm text-slate-700">
-                  <p>Age: {patient.age}</p>
-                  <p>Gender: {patient.gender}</p>
-                  <p>Blood: {patient.bloodGroup}</p>
-                  <p>Phone: {patient.phone}</p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-                <p className="inline-flex items-center gap-2 font-medium">
-                  <ShieldCheck size={16} />
-                  Account Status
-                </p>
-                <p className="mt-1 text-xs">{patient.insurance}</p>
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-2 text-sm font-medium text-slate-700">Upcoming Tasks</p>
-              <ul className="space-y-2 text-sm text-slate-600">
-                {upcomingTasks.map((task) => (
-                  <li key={task} className="rounded-lg bg-slate-50 px-3 py-2">
-                    {task}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
