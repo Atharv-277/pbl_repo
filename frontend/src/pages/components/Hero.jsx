@@ -22,7 +22,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#f8fffe] via-[#eefcf8] to-[#f4fbff] py-16 md:py-24">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#f8fffe] via-[#eefcf8] to-[#f4fbff] pt-24 pb-16 md:py-24">
       {/* Background Blurs */}
       <div className="absolute top-0 left-0 w-72 h-72 bg-teal-200/40 rounded-full blur-3xl"></div>
       <div className="absolute bottom-0 right-0 w-72 h-72 bg-cyan-200/40 rounded-full blur-3xl"></div>
