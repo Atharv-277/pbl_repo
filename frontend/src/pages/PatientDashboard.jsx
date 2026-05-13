@@ -17,13 +17,11 @@ import {
   UserRound,
   Video,
   Droplets,
-  Settings,
-  LogOut,
   Star,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { appointmentAPI, doctorAPI, patientAPI, reviewAPI } from "../services/api";
-import PatientDashboardSidebar from "./components/PatientDashboardSidebar";
+import Navbar from "../Navbar";
 
 const formatStatus = (status) => {
   if (status === "scheduled") return "Scheduled";
@@ -384,36 +382,9 @@ export default function PatientDashboard() {
     navigate("/");
   };
 
-  const handleSidebarAction = (action) => {
-    if (action === "logout") {
-      handleLogout();
-      return;
-    }
-
-    if (action === "settings") {
-      navigate("/patientSettings");
-      return;
-    }
-
-    const sectionMap = {
-      overview: "patient-overview",
-      appointments: "appointments-section",
-      notifications: "notifications-section",
-    };
-
-    const sectionId = sectionMap[action];
-    if (sectionId) {
-      scrollToSection(sectionId);
-    }
+  const handleBookDoctor = (doctor) => {
+    navigate("/bookAppointment", { state: { doctor } });
   };
-
-  const sidebarOptions = [
-    { key: "overview", label: "Dashboard", icon: <Sparkles size={16} /> },
-    { key: "appointments", label: "Appointments", icon: <CalendarDays size={16} /> },
-    { key: "notifications", label: "Notifications", icon: <Bell size={16} /> },
-    { key: "settings", label: "Settings", icon: <Settings size={16} /> },
-    { key: "logout", label: "Logout", icon: <LogOut size={16} /> },
-  ];
 
   const medications = [
     { name: "Atorvastatin 10mg", timing: "After dinner", adherence: 92 },
@@ -462,15 +433,11 @@ export default function PatientDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-6 md:px-8 md:py-8">
-      <div className="mx-auto flex w-full max-w-7xl gap-6">
-        <PatientDashboardSidebar
-          patientName={patient.name}
-          sidebarOptions={sidebarOptions}
-          onAction={handleSidebarAction}
-        />
-
-        <div className="flex-1 space-y-6">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-slate-100 px-4 pb-6 pt-24 md:px-8 md:pb-8">
+        <div className="mx-auto w-full max-w-7xl">
+          <div className="space-y-6">
         <section
           id="patient-overview"
           className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-emerald-900 to-teal-700 p-6 text-white shadow-xl md:p-8"
@@ -779,12 +746,13 @@ export default function PatientDashboard() {
                     <p className="text-xs text-emerald-700">{doctor.HospitalName || "Hospital not listed"}</p>
                     <div className="mt-4 flex items-center justify-between">
                       <span className="text-sm font-semibold text-slate-800">Rs. {doctor.fees || 0}</span>
-                      <a
-                        href="/bookAppointment"
+                      <button
+                        type="button"
+                        onClick={() => handleBookDoctor(doctor)}
                         className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
                       >
-                        Book
-                      </a>
+                        View
+                      </button>
                     </div>
                   </article>
                 ))}
@@ -893,8 +861,9 @@ export default function PatientDashboard() {
             </button>
           </div>
         </section>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

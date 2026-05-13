@@ -133,7 +133,10 @@ export default function Sidebar({ show, onClose }) {
                 <li>
                   <button
                     type="button"
-                    onClick={() => goToPatientSection("settings")}
+                    onClick={() => {
+                      navigate("/patientSettings");
+                      onClose();
+                    }}
                     className={menuItemClass}
                   >
                     <Cog6ToothIcon className="h-5 w-5 text-emerald-500" />
