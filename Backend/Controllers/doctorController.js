@@ -5,6 +5,27 @@ const User = require('../Models/User');
 const Appointment = require('../Models/Appointments');
 const multer = require('multer');
 
+const getRelativeUploadPath = (file) => {
+    if (!file) return null;
+
+    const normalizedPath = (file.path || '').replace(/\\/g, '/');
+    const absoluteMarkerIndex = normalizedPath.lastIndexOf('/uploads/');
+    if (absoluteMarkerIndex !== -1) {
+        return normalizedPath.slice(absoluteMarkerIndex + 1);
+    }
+
+    const relativeMarkerIndex = normalizedPath.lastIndexOf('uploads/');
+    if (relativeMarkerIndex !== -1) {
+        return normalizedPath.slice(relativeMarkerIndex);
+    }
+
+    if (file.filename) {
+        return `uploads/profile-photos/${file.filename}`;
+    }
+
+    return null;
+};
+
 const toMinutes = (timeValue) => {
     if (!timeValue || typeof timeValue !== 'string') return NaN;
     const [hours, minutes] = timeValue.split(':').map(Number);
@@ -226,7 +247,7 @@ exports.updateProfilePhoto = async (req, res) => {
             return res.status(400).json({ message: 'No image file uploaded' });
         }
 
-        const profileImagePath = req.file.path.replace(/\\/g, '/');
+        const profileImagePath = getRelativeUploadPath(req.file);
         
         const user = await User.findByIdAndUpdate(
             req.user.id,

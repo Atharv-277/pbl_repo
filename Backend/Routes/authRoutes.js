@@ -4,15 +4,19 @@ const multer = require('multer');
 const path = require('path');
 const { register, login } = require('../Controllers/authController');
 
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+const doctorCertificatesDir = path.join(uploadsDir, 'doctor-certificates');
+const profilePhotosDir = path.join(uploadsDir, 'profile-photos');
+
 // Multer storage for doctor licence certificates and profile photos
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         if (file.fieldname === 'licenceCertificate') {
-            cb(null, 'uploads/doctor-certificates');
+            cb(null, doctorCertificatesDir);
         } else if (file.fieldname === 'profileImage') {
-            cb(null, 'uploads/profile-photos');
+            cb(null, profilePhotosDir);
         } else {
-            cb(null, 'uploads');
+            cb(null, uploadsDir);
         }
     },
     filename: (req, file, cb) => {

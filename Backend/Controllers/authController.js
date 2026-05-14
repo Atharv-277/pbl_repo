@@ -4,6 +4,27 @@ const Doctor = require('../Models/Doctor');
 const Patient = require('../Models/Patient');
 const generateToken = require('../utils/generateToken');
 
+const getRelativeUploadPath = (file, folderName) => {
+    if (!file) return null;
+
+    const normalizedPath = (file.path || '').replace(/\\/g, '/');
+    const absoluteMarkerIndex = normalizedPath.lastIndexOf('/uploads/');
+    if (absoluteMarkerIndex !== -1) {
+        return normalizedPath.slice(absoluteMarkerIndex + 1);
+    }
+
+    const relativeMarkerIndex = normalizedPath.lastIndexOf('uploads/');
+    if (relativeMarkerIndex !== -1) {
+        return normalizedPath.slice(relativeMarkerIndex);
+    }
+
+    if (file.filename) {
+        return `uploads/${folderName}/${file.filename}`;
+    }
+
+    return null;
+};
+
 // Register Controller
 exports.register = async (req, res) => {
     try {
@@ -23,16 +44,28 @@ exports.register = async (req, res) => {
             fees
         } = req.body;
 
+        if (!name || !email || !password || !role) {
+            return res.status(400).json({
+                message: 'Missing required fields: name, email, password, role'
+            });
+        }
+
+        if (role === 'doctor') {
+            if (!specialization || !qualification || !experience || !licenceNo || !hospitalName || !fees) {
+                return res.status(400).json({
+                    message: 'Missing required doctor fields'
+                });
+            }
+        }
+
         const userExists = await User.findOne({ email });
         if (userExists)
             return res.status(400).json({ message: "User already exists" });
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(String(password), 10);
 
         // Handle profile photo upload
-        const profileImagePath = req.files?.profileImage?.[0]
-            ? req.files.profileImage[0].path.replace(/\\/g, '/')
-            : null;
+        const profileImagePath = getRelativeUploadPath(req.files?.profileImage?.[0], 'profile-photos');
 
         const user = await User.create({
             name,
@@ -54,9 +87,7 @@ exports.register = async (req, res) => {
                 licenceNo,
                 hospitalName,
                 fees,
-                licenceCertificate: req.files?.licenceCertificate?.[0]
-                    ? req.files.licenceCertificate[0].path.replace(/\\/g, '/')
-                    : null,
+                licenceCertificate: getRelativeUploadPath(req.files?.licenceCertificate?.[0], 'doctor-certificates'),
                 status: 'pending'
             });
 

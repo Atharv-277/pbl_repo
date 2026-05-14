@@ -125,7 +125,16 @@ exports.updateProfilePhoto = async (req, res) => {
             return res.status(400).json({ message: 'No image file uploaded' });
         }
 
-        const profileImagePath = req.file.path.replace(/\\/g, '/');
+        const normalizedPath = (req.file.path || '').replace(/\\/g, '/');
+        const absoluteMarkerIndex = normalizedPath.lastIndexOf('/uploads/');
+        const relativeMarkerIndex = normalizedPath.lastIndexOf('uploads/');
+        const profileImagePath = absoluteMarkerIndex !== -1
+            ? normalizedPath.slice(absoluteMarkerIndex + 1)
+            : relativeMarkerIndex !== -1
+                ? normalizedPath.slice(relativeMarkerIndex)
+                : req.file.filename
+                    ? `uploads/profile-photos/${req.file.filename}`
+                    : null;
         
         // Find user by ID and update profileImage
         const User = require('../Models/User');

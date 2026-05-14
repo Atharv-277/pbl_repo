@@ -51,9 +51,7 @@ api.interceptors.response.use(
 export const authAPI = {
     login: (credentials) => api.post('/auth/login', credentials),
     register: (userData) => api.post('/auth/register', userData),
-    registerWithFile: (formData) => api.post('/auth/register', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+    registerWithFile: (formData) => api.post('/auth/register', formData),
 };
 
 export const doctorAPI = {
@@ -64,18 +62,14 @@ export const doctorAPI = {
     getMyBlockedSlots: () => api.get('/doctors/blocked-slots'),
     addBlockedSlot: (slotData) => api.post('/doctors/blocked-slots', slotData),
     deleteBlockedSlot: (slotId) => api.delete(`/doctors/blocked-slots/${slotId}`),
-    uploadProfilePhoto: (formData) => api.put('/doctors/profile-photo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+    uploadProfilePhoto: (formData) => api.put('/doctors/profile-photo', formData),
 };
 
 export const patientAPI = {
     getDashboard: () => api.get('/patients/dashboard'),
     assignDoctor: (doctorId) => api.patch('/patients/assignDoctor', { doctorId }),
     getProfile: () => api.get('/patients/profile'),
-    uploadProfilePhoto: (formData) => api.put('/patients/profile-photo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+    uploadProfilePhoto: (formData) => api.put('/patients/profile-photo', formData),
 };
 
 export const appointmentAPI = {
