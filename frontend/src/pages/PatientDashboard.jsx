@@ -28,14 +28,16 @@ import Navbar from "../Navbar";
 const formatStatus = (status) => {
   if (status === "scheduled") return "Scheduled";
   if (status === "completed") return "Completed";
+  if (status === "approved") return "Approved";
+  if (status === "rejected") return "Rejected";
   if (status === "cancelled") return "Cancelled";
   return "Pending";
 };
 
 const getStatusColor = (status) => {
-  if (status === "completed") return "bg-emerald-100 text-emerald-700";
+  if (status === "completed" || status === "approved") return "bg-emerald-100 text-emerald-700";
   if (status === "scheduled") return "bg-amber-100 text-amber-700";
-  if (status === "cancelled") return "bg-red-100 text-red-700";
+  if (status === "cancelled" || status === "rejected") return "bg-red-100 text-red-700";
   return "bg-gray-100 text-gray-700";
 };
 
@@ -173,7 +175,7 @@ export default function PatientDashboard() {
       return !Number.isNaN(date.getTime()) && date >= now;
     }).length;
 
-    const completed = appointments.filter((item) => item.status === "completed").length;
+    const completed = appointments.filter((item) => item.status === "completed" || item.status === "approved").length;
     const pending = appointments.filter((item) => item.status === "scheduled").length;
 
     return [
@@ -206,7 +208,7 @@ export default function PatientDashboard() {
 
   const appointmentCards = useMemo(() => {
     return appointments
-      .filter((item) => item?.status !== "cancelled")
+      .filter((item) => item?.status !== "cancelled" && item?.status !== "rejected")
       .map((item) => ({
       id: item?._id,
       doctorId: item?.doctor?._id,
@@ -658,7 +660,7 @@ export default function PatientDashboard() {
                           </button>
                         ) : null}
 
-                        {appointment.rawStatus === "completed" ? (
+                        {appointment.rawStatus === "completed" || appointment.rawStatus === "approved" ? (
                           <button
                             type="button"
                             onClick={() =>
@@ -689,7 +691,7 @@ export default function PatientDashboard() {
                       </div>
                     ) : null}
 
-                    {appointment.rawStatus === "completed" &&
+                    {(appointment.rawStatus === "completed" || appointment.rawStatus === "approved") &&
                     openReviewAppointmentId === appointment.id &&
                     !doctorRatings[appointment.doctorId]?.hasReviewed ? (
                       <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4">

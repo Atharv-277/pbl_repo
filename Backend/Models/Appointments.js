@@ -5,7 +5,7 @@ const appointmentSchema = new mongoose.Schema({
     patient: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', required: true },
     appointmentDate: { type: Date, required: true },
     time: { type: String }, // if needed
-    status: { type: String, enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled' },
+    status: { type: String, enum: ['scheduled', 'completed', 'cancelled', 'approved', 'rejected'], default: 'scheduled' },
     description: { type: String },
     doctorNote: { type: String, default: '' },
     createdByRole: { type: String, enum: ['doctor', 'patient'], default: 'patient' }

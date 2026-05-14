@@ -29,13 +29,15 @@ const toDateKey = (value) => {
 const formatStatus = (status) => {
   if (status === "scheduled") return "Scheduled";
   if (status === "completed") return "Completed";
+  if (status === "approved") return "Approved";
+  if (status === "rejected") return "Rejected";
   if (status === "cancelled") return "Cancelled";
   return "Pending";
 };
 
 const getStatusStyles = (status) => {
-  if (status === "completed") return "bg-emerald-100 text-emerald-700";
-  if (status === "cancelled") return "bg-red-100 text-red-700";
+  if (status === "completed" || status === "approved") return "bg-emerald-100 text-emerald-700";
+  if (status === "cancelled" || status === "rejected") return "bg-red-100 text-red-700";
   return "bg-slate-100 text-slate-700";
 };
 
@@ -138,8 +140,8 @@ export default function DoctorDashboard() {
     return appointmentRows
       .filter((item) => {
         const dateMatches = selectedDate ? item.dateKey === selectedDate : true;
-        const hideCompletedMatch = hideCompleted ? item.status !== "completed" : true;
-        const hideCancelledMatch = hideCancelled ? item.status !== "cancelled" : true;
+        const hideCompletedMatch = hideCompleted ? (item.status !== "completed" && item.status !== "approved") : true;
+        const hideCancelledMatch = hideCancelled ? (item.status !== "cancelled" && item.status !== "rejected") : true;
         const hiddenMatch = !hiddenAppointmentIds.includes(String(item.id));
         const searchMatches = normalizedSearch
           ? `${item.patient} ${item.issue}`.toLowerCase().includes(normalizedSearch)
@@ -163,7 +165,7 @@ export default function DoctorDashboard() {
     weekAgo.setDate(now.getDate() - 7);
 
     return appointmentRows.filter((item) => {
-      if (item.status !== "completed") return false;
+      if (item.status !== "completed" && item.status !== "approved") return false;
       const date = new Date(item.appointmentDate);
       return !Number.isNaN(date.getTime()) && date >= weekAgo && date <= now;
     }).length;
@@ -200,7 +202,7 @@ export default function DoctorDashboard() {
     const map = new Map();
 
     appointmentRows
-      .filter((appointment) => appointment.status === "completed")
+      .filter((appointment) => appointment.status === "completed" || appointment.status === "approved")
       .forEach((appointment) => {
         const id = String(appointment.patientId || "");
         if (!id || map.has(id)) return;
@@ -583,7 +585,7 @@ export default function DoctorDashboard() {
                         </span>
                       </div>
 
-                      {(appointment.status === "completed" || appointment.status === "cancelled") ? (
+                      {(appointment.status === "completed" || appointment.status === "cancelled" || appointment.status === "approved" || appointment.status === "rejected") ? (
                         <div className="mt-3 flex justify-end">
                           <button
                             type="button"
@@ -707,18 +709,18 @@ export default function DoctorDashboard() {
                       <button
                         type="button"
                         disabled={updatingAppointmentId === request.id}
-                        onClick={() => handleRequestStatus(request.id, "completed")}
+                        onClick={() => handleRequestStatus(request.id, "approved")}
                         className="rounded-lg bg-emerald-100 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-200 disabled:opacity-60"
                       >
-                        Mark Completed
+                        Approve
                       </button>
                       <button
                         type="button"
                         disabled={updatingAppointmentId === request.id}
-                        onClick={() => handleRequestStatus(request.id, "cancelled")}
+                        onClick={() => handleRequestStatus(request.id, "rejected")}
                         className="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-60"
                       >
-                        Cancel Appointment
+                        Reject
                       </button>
                     </div>
                   </article>

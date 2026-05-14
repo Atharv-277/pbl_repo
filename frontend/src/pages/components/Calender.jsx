@@ -31,10 +31,10 @@ export default function Calendar({ appointments = [], selectedDate = "", onDateS
 
   const appointmentDates = appointmentDateKeys
     .filter((dateKey) => {
-      const d = new Date(dateKey);
-      return d.getMonth() === month && d.getFullYear() === year;
+      const [y, m, d] = dateKey.split("-").map(Number);
+      return (m - 1) === month && y === year;
     })
-    .map((dateKey) => new Date(dateKey).getDate());
+    .map((dateKey) => Number(dateKey.split("-")[2]));
 
   const generateCalendar = () => {
     const dates = [];
@@ -58,10 +58,13 @@ export default function Calendar({ appointments = [], selectedDate = "", onDateS
     return dates;
   };
 
+  const getLocalDateString = (y, m, d) => {
+    return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  };
+
   const handleSelectDate = (dayValue, isCurrentMonth) => {
     if (!isCurrentMonth) return;
-    const selected = new Date(year, month, dayValue);
-    const isoDate = selected.toISOString().split("T")[0];
+    const isoDate = getLocalDateString(year, month, dayValue);
 
     if (selectedDateKey === isoDate) {
       onDateSelect?.("");
@@ -109,7 +112,7 @@ export default function Calendar({ appointments = [], selectedDate = "", onDateS
           const isToday =
             isThisMonth && day.current && day.value === todayDate;
           const hasAppointment = appointmentDates.includes(day.value);
-          const dayDate = day.current ? new Date(year, month, day.value).toISOString().split("T")[0] : "";
+          const dayDate = day.current ? getLocalDateString(year, month, day.value) : "";
           const isSelected = day.current && selectedDateKey === dayDate;
 
           return (

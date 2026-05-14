@@ -3,7 +3,7 @@ const Doctor = require('../Models/Doctor');
 const Patient = require('../Models/Patient');
 const mongoose = require('mongoose');
 
-const APPOINTMENT_STATUSES = ['scheduled', 'completed', 'cancelled'];
+const APPOINTMENT_STATUSES = ['scheduled', 'completed', 'cancelled', 'approved', 'rejected'];
 
 const toMinutes = (timeValue) => {
   if (!timeValue || typeof timeValue !== 'string') return NaN;
@@ -94,7 +94,7 @@ exports.createAppointment = async (req, res) => {
       const hasCompletedVisit = await Appointment.exists({
         doctor: requesterDoctor._id,
         patient: patient._id,
-        status: 'completed'
+        status: { $in: ['completed', 'approved'] }
       });
 
       if (!hasCompletedVisit) {
@@ -243,7 +243,7 @@ exports.getDoctorDashboard = async (req, res) => {
       return aptDate >= monthStart && aptDate <= monthEnd;
     }).length;
 
-    const completedCount = appointments.filter((apt) => apt.status === 'completed').length;
+    const completedCount = appointments.filter((apt) => apt.status === 'completed' || apt.status === 'approved').length;
 
     const uniquePatients = new Set(
       appointments
@@ -321,8 +321,8 @@ exports.updateAppointmentStatus = async (req, res) => {
         return res.status(403).json({ message: 'Patients can only cancel appointments' });
       }
 
-      if (appointment.status === 'completed') {
-        return res.status(400).json({ message: 'Completed appointments cannot be cancelled' });
+      if (appointment.status === 'completed' || appointment.status === 'approved') {
+        return res.status(400).json({ message: 'Completed or approved appointments cannot be cancelled' });
       }
 
       appointment.status = 'cancelled';
