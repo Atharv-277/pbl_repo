@@ -189,11 +189,11 @@ export default function DoctorDashboard() {
   const patientsTable = useMemo(() => {
     // Collect unique patients from both assigned patients and appointments
     const uniquePatientsMap = new Map();
-    
+
     (patients || []).forEach(p => {
       if (p && p._id) uniquePatientsMap.set(String(p._id), p);
     });
-    
+
     (appointments || []).forEach(appt => {
       if (appt.patient && appt.patient._id) {
         if (!uniquePatientsMap.has(String(appt.patient._id))) {
@@ -408,7 +408,7 @@ export default function DoctorDashboard() {
   const handleProfilePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     if (file.size > 5 * 1024 * 1024) {
       alert("Profile photo must be less than 5MB.");
       return;
@@ -416,7 +416,7 @@ export default function DoctorDashboard() {
 
     const formData = new FormData();
     formData.append('profileImage', file);
-    
+
     try {
       const response = await doctorAPI.uploadProfilePhoto(formData);
       // Update local storage so it persists across refreshes
@@ -450,9 +450,9 @@ export default function DoctorDashboard() {
                 <div className="relative group shrink-0">
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden shadow-xl transition-all group-hover:border-white/40">
                     {doctorProfile?.profileImage || currentUser?.profileImage ? (
-                      <img 
-                        src={resolveAssetUrl(doctorProfile?.profileImage || currentUser?.profileImage)} 
-                        alt="Dr. Profile" 
+                      <img
+                        src={resolveAssetUrl(doctorProfile?.profileImage || currentUser?.profileImage)}
+                        alt="Dr. Profile"
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -496,23 +496,7 @@ export default function DoctorDashboard() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/30 bg-white/10 p-5 backdrop-blur-sm">
-              <p className="text-sm text-white/80">Doctor Insights</p>
-              <div className="mt-3 space-y-2 text-sm">
-                <p className="flex items-center justify-between">
-                  <span>Completion Rate</span>
-                  <span className="font-semibold">{doctor.rating}</span>
-                </p>
-                <p className="flex items-center justify-between">
-                  <span>Specialization</span>
-                  <span className="font-semibold">{doctor.specialization}</span>
-                </p>
-                <p className="flex items-center justify-between">
-                  <span>Experience</span>
-                  <span className="font-semibold">{doctor.experience}</span>
-                </p>
-              </div>
-            </div>
+
           </div>
         </section>
 
@@ -1032,7 +1016,7 @@ export default function DoctorDashboard() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm" onClick={() => setSelectedPatient(null)} />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="fixed inset-4 z-50 m-auto max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
-              
+
               <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4 rounded-t-3xl">
                 <div className="flex items-center gap-4">
                   <div className="flex h-14 w-14 overflow-hidden items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 text-xl font-bold text-white shadow-lg">
