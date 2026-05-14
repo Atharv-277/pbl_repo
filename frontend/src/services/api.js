@@ -1,10 +1,35 @@
 import axios from 'axios';
 
+const configuredApiRoot = import.meta.env.VITE_API_BASE_URL || '';
+const configuredApiUrl = import.meta.env.VITE_API_URL || '';
+const derivedRootFromApiUrl = configuredApiUrl
+    ? configuredApiUrl.replace(/\/api\/?$/, '')
+    : '';
+
 export const API_BASE_ROOT =
-    import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:5000' : '');
+    (configuredApiRoot || derivedRootFromApiUrl || (import.meta.env.DEV ? 'http://localhost:5000' : ''))
+        .replace(/\/+$/, '');
 
 export const API_BASE_URL =
-    import.meta.env.VITE_API_URL || (API_BASE_ROOT ? `${API_BASE_ROOT}/api` : '/api');
+    configuredApiUrl || (API_BASE_ROOT ? `${API_BASE_ROOT}/api` : '/api');
+
+export const resolveAssetUrl = (assetPath, fallback = '') => {
+    if (!assetPath) return fallback;
+
+    const clean = String(assetPath).replace(/\\/g, '/');
+
+    if (/^(https?:|blob:|data:)/i.test(clean)) {
+        return clean;
+    }
+
+    const relativePath = clean.replace(/^\/+/, '');
+
+    if (API_BASE_ROOT) {
+        return `${API_BASE_ROOT}/${relativePath}`;
+    }
+
+    return `/${relativePath}`;
+};
 
 if (import.meta.env.PROD && !import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_BASE_URL) {
     console.warn('[api] VITE_API_URL or VITE_API_BASE_URL is not set. Falling back to /api.');

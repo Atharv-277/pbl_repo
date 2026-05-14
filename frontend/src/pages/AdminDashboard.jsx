@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminAPI, API_BASE_ROOT } from "../services/api";
+import { adminAPI, resolveAssetUrl } from "../services/api";
 import { toast } from "react-toastify";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,10 +66,14 @@ export default function AdminDashboard() {
     navigate("/");
   };
 
-  const getCertificateUrl = (path) => {
-    if (!path) return null;
-    const clean = path.replace(/\\/g, '/');
-    return `${API_BASE_ROOT}/${clean}`;
+  const getAssetUrl = (assetPath) => {
+    return resolveAssetUrl(assetPath, null);
+  };
+
+  const isPdfAsset = (assetPath) => {
+    if (!assetPath) return false;
+    const clean = String(assetPath).replace(/\\/g, '/').split('?')[0].toLowerCase();
+    return clean.endsWith('.pdf');
   };
 
   const statusBadge = (status) => {
@@ -158,7 +162,7 @@ export default function AdminDashboard() {
                       <div className="flex items-center gap-4">
                         <div className="flex h-14 w-14 overflow-hidden items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-xl font-bold text-white shadow-lg shadow-emerald-500/30">
                           {doc.profileImage ? (
-                            <img src={`${API_BASE_ROOT}/${doc.profileImage}`} alt="Profile" className="w-full h-full object-cover" />
+                            <img src={getAssetUrl(doc.profileImage)} alt="Profile" className="w-full h-full object-cover" />
                           ) : (
                             doc.name?.charAt(0)?.toUpperCase() || "D"
                           )}
@@ -211,7 +215,7 @@ export default function AdminDashboard() {
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white">
                             {doc.profileImage ? (
-                              <img src={`${API_BASE_ROOT}/${doc.profileImage}`} alt="Profile" className="w-full h-full object-cover" />
+                              <img src={getAssetUrl(doc.profileImage)} alt="Profile" className="w-full h-full object-cover" />
                             ) : (
                               doc.name?.charAt(0)?.toUpperCase() || "D"
                             )}
@@ -255,7 +259,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-4">
                   <div className="flex h-14 w-14 overflow-hidden items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-xl font-bold text-white shadow-lg">
                     {selectedDoctor.profileImage ? (
-                      <img src={`${API_BASE_ROOT}/${selectedDoctor.profileImage}`} alt="Profile" className="w-full h-full object-cover" />
+                      <img src={getAssetUrl(selectedDoctor.profileImage)} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       selectedDoctor.name?.charAt(0)?.toUpperCase() || "D"
                     )}
@@ -322,24 +326,24 @@ export default function AdminDashboard() {
                   <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">Medical License Certificate</h3>
                   {selectedDoctor.licenceCertificate ? (
                     <div className="rounded-2xl border border-slate-200 overflow-hidden">
-                      {selectedDoctor.licenceCertificate.endsWith('.pdf') ? (
+                      {isPdfAsset(selectedDoctor.licenceCertificate) ? (
                         <div className="bg-slate-50 p-6 text-center">
                           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100 text-red-500 text-3xl mb-3">📄</div>
                           <p className="font-medium text-slate-700 mb-2">PDF Certificate Uploaded</p>
-                          <a href={getCertificateUrl(selectedDoctor.licenceCertificate)} target="_blank" rel="noopener noreferrer"
+                          <a href={getAssetUrl(selectedDoctor.licenceCertificate)} target="_blank" rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:shadow-lg transition">
                             View PDF Certificate ↗
                           </a>
                         </div>
                       ) : (
                         <div>
-                          <img src={getCertificateUrl(selectedDoctor.licenceCertificate)} alt="Medical License Certificate"
+                          <img src={getAssetUrl(selectedDoctor.licenceCertificate)} alt="Medical License Certificate"
                             className="w-full max-h-[400px] object-contain bg-slate-50" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                           <div className="hidden items-center justify-center p-8 bg-slate-50 text-slate-400">
                             <p>Failed to load certificate image</p>
                           </div>
                           <div className="border-t border-slate-100 bg-slate-50 p-3 text-center">
-                            <a href={getCertificateUrl(selectedDoctor.licenceCertificate)} target="_blank" rel="noopener noreferrer"
+                            <a href={getAssetUrl(selectedDoctor.licenceCertificate)} target="_blank" rel="noopener noreferrer"
                               className="text-sm font-semibold text-teal-600 hover:text-teal-700">
                               Open full size ↗
                             </a>

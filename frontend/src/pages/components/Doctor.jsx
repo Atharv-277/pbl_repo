@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
-import { API_BASE_ROOT, doctorAPI } from "@/services/api.js";
+import { doctorAPI, resolveAssetUrl } from "@/services/api.js";
 
 // DoctorProfileCard.jsx
 export default function DoctorProfileCard() {
@@ -59,18 +59,7 @@ export default function DoctorProfileCard() {
       return profileImage;
     }
     
-    // If it's a relative path, construct full URL
-    if (profileImage.startsWith('uploads/')) {
-      return `${API_BASE_ROOT}/${profileImage}`;
-    }
-    
-    // If it's already a full URL, return as is
-    if (profileImage.startsWith('http')) {
-      return profileImage;
-    }
-    
-    // Default fallback
-    return fallbackAvatar;
+    return resolveAssetUrl(profileImage, fallbackAvatar);
   };
 
   if (loading) {

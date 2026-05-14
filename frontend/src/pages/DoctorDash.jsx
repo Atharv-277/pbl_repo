@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Calendar from "./components/Calender";
-import { appointmentAPI, doctorAPI, API_BASE_ROOT } from "../services/api";
+import { appointmentAPI, doctorAPI, resolveAssetUrl } from "../services/api";
 
 const toDateKey = (value) => {
   const date = new Date(value);
@@ -412,7 +412,7 @@ export default function DoctorDashboard() {
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden shadow-xl transition-all group-hover:border-white/40">
                     {doctorProfile?.profileImage || user?.profileImage ? (
                       <img 
-                        src={`${API_BASE_ROOT}/${doctorProfile?.profileImage || user?.profileImage}`} 
+                        src={resolveAssetUrl(doctorProfile?.profileImage || user?.profileImage)} 
                         alt="Dr. Profile" 
                         className="w-full h-full object-cover"
                       />

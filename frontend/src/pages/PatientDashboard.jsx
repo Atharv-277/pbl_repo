@@ -22,7 +22,7 @@ import {
   Camera,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { appointmentAPI, doctorAPI, patientAPI, reviewAPI, API_BASE_ROOT } from "../services/api";
+import { appointmentAPI, doctorAPI, patientAPI, reviewAPI, resolveAssetUrl } from "../services/api";
 import Navbar from "../Navbar";
 
 const formatStatus = (status) => {
@@ -469,7 +469,7 @@ export default function PatientDashboard() {
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden shadow-xl transition-all group-hover:border-white/40">
                     {user?.profileImage ? (
                       <img 
-                        src={`${API_BASE_ROOT}/${user.profileImage}`} 
+                        src={resolveAssetUrl(user.profileImage)} 
                         alt="Patient Profile" 
                         className="w-full h-full object-cover"
                       />

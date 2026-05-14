@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { useState, useEffect, useMemo } from "react";
 import { FaCheckCircle } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
-import { API_BASE_ROOT, appointmentAPI, doctorAPI, patientAPI } from "../services/api";
+import { appointmentAPI, doctorAPI, patientAPI, resolveAssetUrl } from "../services/api";
 import Navbar from "../Navbar";
 
 export default function BookDoctorProfile() {
@@ -150,30 +150,31 @@ export default function BookDoctorProfile() {
       return profileImage;
     }
     
-    // If it's a relative path, construct full URL
-    if (profileImage.startsWith('uploads/')) {
-      return `${API_BASE_ROOT}/${profileImage}`;
-    }
-    
-    // If it's already a full URL, return as is
-    if (profileImage.startsWith('http')) {
-      return profileImage;
-    }
-    
-    // Default fallback
-    return fallbackAvatar;
+    return resolveAssetUrl(profileImage, fallbackAvatar);
   };
 
   useEffect(() => {
-    // Get doctor data from location state
-    if (location.state?.doctor) {
-      console.log('Doctor data received:', location.state.doctor);
-      setDoctor(location.state.doctor);
-      setShowDoctorList(false);
-    } else {
-      // If no doctor selected, show doctor list
-      fetchDoctors();
-    }
+    let isCancelled = false;
+
+    const init = async () => {
+      const stateDoctor = location.state?.doctor || null;
+
+      if (stateDoctor && !isCancelled) {
+        setDoctor(stateDoctor);
+        setShowDoctorList(false);
+      }
+
+      const latestDoctors = await fetchDoctors();
+
+      if (stateDoctor?._id && !isCancelled) {
+        const latestDoctor = latestDoctors.find((item) => String(item?._id) === String(stateDoctor._id));
+        if (latestDoctor) {
+          setDoctor(latestDoctor);
+        }
+      }
+    };
+
+    init();
 
     const today = new Date();
     const upcomingDates = [];
@@ -187,14 +188,29 @@ export default function BookDoctorProfile() {
       });
     }
     setDates(upcomingDates);
+
+    return () => {
+      isCancelled = true;
+    };
   }, [location.state]);
 
   const fetchDoctors = async () => {
     try {
       const response = await doctorAPI.getAllDoctors();
-      setDoctors(response.data);
+      const list = Array.isArray(response.data) ? response.data : [];
+      setDoctors(list);
+
+      if (doctor?._id) {
+        const refreshedDoctor = list.find((item) => String(item?._id) === String(doctor._id));
+        if (refreshedDoctor) {
+          setDoctor(refreshedDoctor);
+        }
+      }
+
+      return list;
     } catch (error) {
       console.error('Error fetching doctors:', error);
+      return [];
     }
   };
 
@@ -223,7 +239,8 @@ export default function BookDoctorProfile() {
           .map((appointment) => appointment.time)
           .filter(Boolean);
 
-        const blockedForDate = (doctor.blockedSlots || []).filter((slot) => slot.date === selectedDateKey);
+        const latestDoctor = doctors.find((item) => String(item?._id) === String(doctor._id)) || doctor;
+        const blockedForDate = (latestDoctor.blockedSlots || []).filter((slot) => slot.date === selectedDateKey);
         const blocked = blockedForDate.flatMap((slot) =>
           timeSlots.filter((timeSlot) => isSlotInRange(timeSlot, slot.from, slot.to))
         );
@@ -256,7 +273,7 @@ export default function BookDoctorProfile() {
     };
 
     fetchBookedSlots();
-  }, [doctor?._id, selectedDate, dates, doctor]);
+  }, [doctor?._id, selectedDate, dates, doctor, doctors]);
 
   useEffect(() => {
     if (selectedTime && !availableTimeSlots.includes(selectedTime)) {
