@@ -79,8 +79,20 @@ export default function DoctorDashboard() {
   const [blockedSlots, setBlockedSlots] = useState([]);
   const navigate = useNavigate();
 
-  const user = useMemo(() => {
-    return JSON.parse(localStorage.getItem("user") || "{}");
+  const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
+
+  useEffect(() => {
+    const syncUser = () => {
+      setCurrentUser(JSON.parse(localStorage.getItem("user") || "{}"));
+    };
+
+    window.addEventListener("auth-changed", syncUser);
+    window.addEventListener("storage", syncUser);
+
+    return () => {
+      window.removeEventListener("auth-changed", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
   }, []);
 
   const fetchDashboardData = async () => {
@@ -100,7 +112,7 @@ export default function DoctorDashboard() {
       setPatients(patientsResponse.data || []);
 
       const matchedDoctor = (doctorsResponse.data || []).find(
-        (doctor) => String(doctor?.userId?._id) === String(user?._id)
+        (doctor) => String(doctor?.userId?._id) === String(currentUser?._id)
       );
       setDoctorProfile(matchedDoctor || null);
       setBlockedSlots(blockedSlotsResponse.data || []);
@@ -113,7 +125,7 @@ export default function DoctorDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [currentUser?._id]);
 
   const appointmentRows = useMemo(() => {
     return appointments.map((item) => {
@@ -245,7 +257,7 @@ export default function DoctorDashboard() {
   }, [statsPayload, pendingRequests.length, weeklyCompletedCount, patients.length]);
 
   const doctor = {
-    name: doctorProfile?.name || user?.name || "Doctor",
+    name: doctorProfile?.name || currentUser?.name || "Doctor",
     specialization: doctorProfile?.specialization || "General Physician",
     experience: doctorProfile?.experiance || doctorProfile?.experience || "N/A",
     rating: statsPayload?.completionRate ? `${statsPayload.completionRate}%` : "N/A",
@@ -383,8 +395,10 @@ export default function DoctorDashboard() {
     try {
       const response = await doctorAPI.uploadProfilePhoto(formData);
       // Update local storage so it persists across refreshes
-      const updatedUser = { ...user, profileImage: response.data.profileImage };
+      const updatedUser = { ...currentUser, profileImage: response.data.profileImage };
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      setCurrentUser(updatedUser);
+      setDoctorProfile((prev) => (prev ? { ...prev, profileImage: response.data.profileImage } : prev));
       // Refresh dashboard to pull the latest profile info
       await fetchDashboardData();
     } catch (err) {
@@ -410,9 +424,9 @@ export default function DoctorDashboard() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <div className="relative group shrink-0">
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden shadow-xl transition-all group-hover:border-white/40">
-                    {doctorProfile?.profileImage || user?.profileImage ? (
+                    {doctorProfile?.profileImage || currentUser?.profileImage ? (
                       <img 
-                        src={resolveAssetUrl(doctorProfile?.profileImage || user?.profileImage)} 
+                        src={resolveAssetUrl(doctorProfile?.profileImage || currentUser?.profileImage)} 
                         alt="Dr. Profile" 
                         className="w-full h-full object-cover"
                       />
