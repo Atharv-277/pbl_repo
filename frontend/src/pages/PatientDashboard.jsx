@@ -54,6 +54,7 @@ export default function PatientDashboard() {
   const [reviewDrafts, setReviewDrafts] = useState({});
   const [submittingReviewFor, setSubmittingReviewFor] = useState("");
   const [cancellingAppointmentId, setCancellingAppointmentId] = useState("");
+  const [notificationsCleared, setNotificationsCleared] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -359,7 +360,7 @@ export default function PatientDashboard() {
       list.push(...doctorNoteAlerts.slice(0, 5));
     }
 
-    return list;
+    return list.reverse();
   }, [assignedDoctor?.userId?.name, appointmentCards, reviews.length, doctorNoteAlerts]);
 
   const patient = {
@@ -409,17 +410,7 @@ export default function PatientDashboard() {
     navigate("/bookAppointment", { state: { doctor } });
   };
 
-  const medications = [
-    { name: "Atorvastatin 10mg", timing: "After dinner", adherence: 92 },
-    { name: "Vitamin D3", timing: "Morning", adherence: 78 },
-    { name: "Omega-3", timing: "After lunch", adherence: 84 },
-  ];
 
-  const wellnessGoals = [
-    { label: "Hydration", progress: 70, icon: <Droplets size={16} /> },
-    { label: "Daily Steps", progress: 82, icon: <Activity size={16} /> },
-    { label: "Sleep Quality", progress: 64, icon: <Clock3 size={16} /> },
-  ];
 
   useEffect(() => {
     const section = searchParams.get("section");
@@ -800,105 +791,44 @@ export default function PatientDashboard() {
           </div>
 
           <aside className="space-y-6">
-            <div id="medication-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <Pill className="text-emerald-600" size={19} />
-                Medication Tracker
-              </h2>
-
-              <div className="space-y-4">
-                {medications.map((medication) => (
-                  <div key={medication.name}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="font-medium text-slate-700">{medication.name}</span>
-                      <span className="text-slate-500">{medication.adherence}%</span>
-                    </div>
-                    <p className="text-xs text-slate-500">{medication.timing}</p>
-                    <div className="mt-2 h-2 rounded-full bg-slate-200">
-                      <div
-                        className="h-2 rounded-full bg-emerald-500"
-                        style={{ width: `${medication.adherence}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <Activity className="text-cyan-700" size={18} />
-                Wellness Goals
-              </h2>
-
-              <div className="space-y-4">
-                {wellnessGoals.map((goal) => (
-                  <div key={goal.label} className="rounded-xl border border-slate-200 p-3">
-                    <div className="mb-2 flex items-center justify-between text-sm">
-                      <p className="inline-flex items-center gap-2 font-medium text-slate-700">
-                        {goal.icon}
-                        {goal.label}
-                      </p>
-                      <span className="text-slate-500">{goal.progress}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-200">
-                      <div
-                        className="h-2 rounded-full bg-cyan-600"
-                        style={{ width: `${goal.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div id="notifications-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <Bell className="text-amber-600" size={18} />
-                Notifications
-              </h2>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                  <Bell className="text-amber-600" size={18} />
+                  Notifications
+                </h2>
+                {!notificationsCleared && notifications.length > 0 && (
+                  <button 
+                    onClick={() => setNotificationsCleared(true)}
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-700 transition"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
 
               <div className="space-y-3">
-                {notifications.map((note, index) => (
-                  <div
-                    key={`${note}-${index}`}
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"
-                  >
-                    {note}
+                {notificationsCleared || notifications.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                    <Bell className="mx-auto mb-2 text-slate-400 opacity-50" size={24} />
+                    No new notifications
                   </div>
-                ))}
+                ) : (
+                  notifications.map((note, index) => (
+                    <div
+                      key={`${note}-${index}`}
+                      className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm transition hover:border-amber-200"
+                    >
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                        <Bell size={14} />
+                      </div>
+                      <p>{note}</p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
-
           </aside>
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <a
-              href="/bookAppointment"
-              className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-            >
-              <CalendarDays className="mb-2" size={20} />
-              Book Appointment
-            </a>
-            <a
-              href="/"
-              className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-700 transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-700"
-            >
-              <Stethoscope className="mb-2" size={20} />
-              Find Doctors
-            </a>
-            <button className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-left text-sm font-medium text-slate-700 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700">
-              <FileText className="mb-2" size={20} />
-              Medical Records
-            </button>
-            <button className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-left text-sm font-medium text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700">
-              <Video className="mb-2" size={20} />
-              Start Teleconsult
-            </button>
-          </div>
         </section>
           </div>
         </div>

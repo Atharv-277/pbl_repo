@@ -632,6 +632,24 @@ export default function BookDoctorProfile() {
               <p className="text-2xl font-bold text-slate-900">₹{doctor.fees || 0}</p>
             </div>
 
+            <div className="mt-5 rounded-2xl border border-slate-200/80 bg-white/80 p-4 text-sm shadow-sm">
+              <h4 className="mb-3 font-semibold text-slate-800">Your Details (Auto-fetched)</h4>
+              <div className="space-y-2">
+                <p className="text-slate-600">
+                  <span className="font-semibold text-slate-800">Name:</span> {JSON.parse(localStorage.getItem('user') || '{}').name || 'Not provided'}
+                </p>
+                <p className="text-slate-600">
+                  <span className="font-semibold text-slate-800">Email:</span> {JSON.parse(localStorage.getItem('user') || '{}').email || 'Not provided'}
+                </p>
+                <p className="text-slate-600">
+                  <span className="font-semibold text-slate-800">Phone:</span> {JSON.parse(localStorage.getItem('user') || '{}').phoneNo || 'Not provided'}
+                </p>
+              </div>
+              <p className="mt-2 text-xs text-slate-500 text-center bg-blue-50 text-blue-700 p-2 rounded-lg">
+                These details will be securely shared with the doctor.
+              </p>
+            </div>
+
             <div className="mt-5">
               <label htmlFor="patient-description" className="mb-2 block text-sm font-semibold text-slate-700">
                 Describe Your Issue (Optional)

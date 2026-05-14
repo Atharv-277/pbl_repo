@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
   ArrowUpRight,
@@ -53,6 +55,7 @@ export default function DoctorDashboard() {
   const [hideCompleted, setHideCompleted] = useState(false);
   const [hideCancelled, setHideCancelled] = useState(false);
   const [hiddenAppointmentIds, setHiddenAppointmentIds] = useState([]);
+  const [selectedPatient, setSelectedPatient] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [doctorProfile, setDoctorProfile] = useState(null);
@@ -172,7 +175,24 @@ export default function DoctorDashboard() {
   }, [appointmentRows]);
 
   const patientsTable = useMemo(() => {
-    return (patients || []).map((patient) => {
+    // Collect unique patients from both assigned patients and appointments
+    const uniquePatientsMap = new Map();
+    
+    (patients || []).forEach(p => {
+      if (p && p._id) uniquePatientsMap.set(String(p._id), p);
+    });
+    
+    (appointments || []).forEach(appt => {
+      if (appt.patient && appt.patient._id) {
+        if (!uniquePatientsMap.has(String(appt.patient._id))) {
+          uniquePatientsMap.set(String(appt.patient._id), appt.patient);
+        }
+      }
+    });
+
+    const allUniquePatients = Array.from(uniquePatientsMap.values());
+
+    return allUniquePatients.map((patient) => {
       const patientAppointments = appointmentRows.filter(
         (appointment) => String(appointment.patientId) === String(patient?._id)
       );
@@ -186,17 +206,22 @@ export default function DoctorDashboard() {
 
       return {
         id: patient?._id,
-        name: patient?.userId?.name || "Unknown",
+        name: patient?.userId?.name || "Unknown Patient",
         age: patient?.userId?.age || "N/A",
         gender: patient?.userId?.gender || "N/A",
+        phone: patient?.userId?.phoneNo || "N/A",
+        email: patient?.userId?.email || "N/A",
+        bloodGroup: patient?.bloodGroup || "N/A",
+        address: patient?.userId?.address || "N/A",
         condition: latest?.issue || "General consultation",
         lastVisit: latest?.appointmentDate
           ? new Date(latest.appointmentDate).toLocaleDateString()
           : "No visits yet",
+        history: patientAppointments,
         risk,
       };
     });
-  }, [patients, appointmentRows]);
+  }, [patients, appointments, appointmentRows]);
 
   const followUpEligiblePatients = useMemo(() => {
     const map = new Map();
@@ -586,7 +611,17 @@ export default function DoctorDashboard() {
                       </div>
 
                       {(appointment.status === "completed" || appointment.status === "cancelled" || appointment.status === "approved" || appointment.status === "rejected") ? (
-                        <div className="mt-3 flex justify-end">
+                        <div className="mt-3 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const p = patientsTable.find((p) => String(p.id) === String(appointment.patientId));
+                              if (p) setSelectedPatient(p);
+                            }}
+                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                          >
+                            See Details
+                          </button>
                           <button
                             type="button"
                             onClick={() =>
@@ -601,7 +636,20 @@ export default function DoctorDashboard() {
                             Remove from this list
                           </button>
                         </div>
-                      ) : null}
+                      ) : (
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const p = patientsTable.find((p) => String(p.id) === String(appointment.patientId));
+                              if (p) setSelectedPatient(p);
+                            }}
+                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                          >
+                            See Details
+                          </button>
+                        </div>
+                      )}
                     </article>
                   ))}
                 </div>
@@ -621,11 +669,12 @@ export default function DoctorDashboard() {
                       <th className="px-4 py-3">Condition</th>
                       <th className="px-4 py-3">Last Visit</th>
                       <th className="px-4 py-3">Risk</th>
+                      <th className="px-4 py-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white text-slate-700">
                     {patientsTable.map((patient) => (
-                      <tr key={patient.id}>
+                      <tr key={patient.id} className="transition hover:bg-slate-50">
                         <td className="px-4 py-3">
                           <p className="font-medium text-slate-900">{patient.name}</p>
                           <p className="text-xs text-slate-500">
@@ -642,6 +691,17 @@ export default function DoctorDashboard() {
                           >
                             {patient.risk}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPatient(patient);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-blue-600"
+                          >
+                            See Details
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -705,23 +765,35 @@ export default function DoctorDashboard() {
                       />
                     </label>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <button
                         type="button"
-                        disabled={updatingAppointmentId === request.id}
-                        onClick={() => handleRequestStatus(request.id, "approved")}
-                        className="rounded-lg bg-emerald-100 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-200 disabled:opacity-60"
+                        onClick={() => {
+                          const p = patientsTable.find((p) => String(p.id) === String(request.patientId));
+                          if (p) setSelectedPatient(p);
+                        }}
+                        className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
                       >
-                        Approve
+                        See Details
                       </button>
-                      <button
-                        type="button"
-                        disabled={updatingAppointmentId === request.id}
-                        onClick={() => handleRequestStatus(request.id, "rejected")}
-                        className="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-60"
-                      >
-                        Reject
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={updatingAppointmentId === request.id}
+                          onClick={() => handleRequestStatus(request.id, "approved")}
+                          className="rounded-lg bg-emerald-100 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-200 disabled:opacity-60"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          disabled={updatingAppointmentId === request.id}
+                          onClick={() => handleRequestStatus(request.id, "rejected")}
+                          className="rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-60"
+                        >
+                          Reject
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -938,6 +1010,78 @@ export default function DoctorDashboard() {
           </aside>
         </section>
       </div>
+
+      {/* Patient Detail Modal */}
+      <AnimatePresence>
+        {selectedPatient && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm" onClick={() => setSelectedPatient(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-4 z-50 m-auto max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+              
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4 rounded-t-3xl">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 overflow-hidden items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 text-xl font-bold text-white shadow-lg">
+                    {selectedPatient.name?.charAt(0)?.toUpperCase() || "P"}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">{selectedPatient.name}</h2>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-sm text-slate-500">{selectedPatient.gender}, {selectedPatient.age} yrs</span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${getRiskStyles(selectedPatient.risk)}`}>{selectedPatient.risk} Risk</span>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedPatient(null)} className="rounded-full p-2 hover:bg-white/80 transition text-slate-500 hover:text-slate-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">Contact & Details</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: "Email", value: selectedPatient.email },
+                      { label: "Phone", value: selectedPatient.phone },
+                      { label: "Blood Group", value: selectedPatient.bloodGroup },
+                      { label: "Address", value: selectedPatient.address },
+                    ].map((item) => (
+                      <div key={item.label} className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{item.label}</p>
+                        <p className="mt-1 font-medium text-slate-800 break-all">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">Appointment History ({selectedPatient.history?.length || 0})</h3>
+                  <div className="space-y-3">
+                    {selectedPatient.history?.length > 0 ? (
+                      selectedPatient.history.map((appt) => (
+                        <div key={appt.id} className="rounded-xl border border-slate-200 p-4 flex flex-wrap gap-4 justify-between items-center bg-white shadow-sm hover:border-blue-200 transition">
+                          <div>
+                            <p className="font-semibold text-slate-900">{new Date(appt.appointmentDate).toLocaleDateString()} at {appt.time}</p>
+                            <p className="text-sm text-slate-600 mt-1">{appt.issue}</p>
+                          </div>
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusStyles(appt.status)}`}>
+                            {formatStatus(appt.status)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                        No appointments found.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
