@@ -125,15 +125,80 @@ exports.rejectDoctor = async (req, res) => {
     }
 };
 
+// Block an approved doctor
+exports.blockDoctor = async (req, res) => {
+    try {
+        const doctor = await Doctor.findById(req.params.doctorId);
+        if (!doctor) {
+            return res.status(404).json({ message: 'Doctor not found' });
+        }
+
+        if (doctor.status !== 'approved') {
+            return res.status(400).json({ message: 'Only approved doctors can be blocked' });
+        }
+
+        doctor.status = 'blocked';
+        await doctor.save();
+
+        const user = await User.findById(doctor.userId).select('name email');
+
+        res.json({
+            message: `Dr. ${user?.name || 'Doctor'} has been blocked.`,
+            doctor: {
+                _id: doctor._id,
+                status: doctor.status,
+                name: user?.name,
+                email: user?.email
+            }
+        });
+    } catch (error) {
+        console.error('Error blocking doctor:', error);
+        res.status(500).json({ message: 'Error blocking doctor', error: error.message });
+    }
+};
+
+// Unblock a blocked doctor
+exports.unblockDoctor = async (req, res) => {
+    try {
+        const doctor = await Doctor.findById(req.params.doctorId);
+        if (!doctor) {
+            return res.status(404).json({ message: 'Doctor not found' });
+        }
+
+        if (doctor.status !== 'blocked') {
+            return res.status(400).json({ message: 'Only blocked doctors can be unblocked' });
+        }
+
+        doctor.status = 'approved';
+        await doctor.save();
+
+        const user = await User.findById(doctor.userId).select('name email');
+
+        res.json({
+            message: `Dr. ${user?.name || 'Doctor'} has been unblocked.`,
+            doctor: {
+                _id: doctor._id,
+                status: doctor.status,
+                name: user?.name,
+                email: user?.email
+            }
+        });
+    } catch (error) {
+        console.error('Error unblocking doctor:', error);
+        res.status(500).json({ message: 'Error unblocking doctor', error: error.message });
+    }
+};
+
 // Get dashboard stats
 exports.getDashboardStats = async (req, res) => {
     try {
         const pending = await Doctor.countDocuments({ status: 'pending' });
         const approved = await Doctor.countDocuments({ status: 'approved' });
         const rejected = await Doctor.countDocuments({ status: 'rejected' });
-        const total = pending + approved + rejected;
+        const blocked = await Doctor.countDocuments({ status: 'blocked' });
+        const total = pending + approved + rejected + blocked;
 
-        res.json({ total, pending, approved, rejected });
+        res.json({ total, pending, approved, rejected, blocked });
     } catch (error) {
         console.error('Error fetching dashboard stats:', error);
         res.status(500).json({ message: 'Error fetching stats', error: error.message });

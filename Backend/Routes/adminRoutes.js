@@ -7,6 +7,8 @@ const {
     getAllDoctorsAdmin,
     approveDoctor,
     rejectDoctor,
+    blockDoctor,
+    unblockDoctor,
     getDashboardStats
 } = require('../Controllers/adminController');
 
@@ -19,5 +21,7 @@ router.get('/pending-doctors', getPendingDoctors);
 router.get('/doctors', getAllDoctorsAdmin);
 router.patch('/doctors/:doctorId/approve', approveDoctor);
 router.patch('/doctors/:doctorId/reject', rejectDoctor);
+router.patch('/doctors/:doctorId/block', blockDoctor);
+router.patch('/doctors/:doctorId/unblock', unblockDoctor);
 
 module.exports = router;

@@ -225,19 +225,19 @@ export default function PatientDashboard() {
     return appointments
       .filter((item) => item?.status !== "cancelled" && item?.status !== "rejected")
       .map((item) => ({
-      id: item?._id,
-      doctorId: item?.doctor?._id,
-      doctor: item?.doctor?.userId?.name || "Doctor",
-      specialty: item?.doctor?.specialization || "General Physician",
-      date: item?.appointmentDate ? new Date(item.appointmentDate).toLocaleDateString() : "Date pending",
-      time: item?.time || "Time pending",
-      mode: "In-Clinic",
-      description: item?.description || "",
-      createdByRole: item?.createdByRole || "patient",
-      doctorNote: typeof item?.doctorNote === "string" ? item.doctorNote.trim() : "",
-      status: formatStatus(item?.status),
-      rawStatus: item?.status,
-    }));
+        id: item?._id,
+        doctorId: item?.doctor?._id,
+        doctor: item?.doctor?.userId?.name || "Doctor",
+        specialty: item?.doctor?.specialization || "General Physician",
+        date: item?.appointmentDate ? new Date(item.appointmentDate).toLocaleDateString() : "Date pending",
+        time: item?.time || "Time pending",
+        mode: "In-Clinic",
+        description: item?.description || "",
+        createdByRole: item?.createdByRole || "patient",
+        doctorNote: typeof item?.doctorNote === "string" ? item.doctorNote.trim() : "",
+        status: formatStatus(item?.status),
+        rawStatus: item?.status,
+      }));
   }, [appointments]);
 
   const doctorNoteAlerts = useMemo(() => {
@@ -398,7 +398,7 @@ export default function PatientDashboard() {
   const handleProfilePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Profile photo must be less than 5MB.");
       return;
@@ -406,7 +406,7 @@ export default function PatientDashboard() {
 
     const formData = new FormData();
     formData.append('profileImage', file);
-    
+
     try {
       const response = await patientAPI.uploadProfilePhoto(formData);
       // Update local storage so it persists across refreshes
@@ -461,390 +461,384 @@ export default function PatientDashboard() {
       <div className="min-h-screen bg-slate-100 px-4 pb-6 pt-24 md:px-8 md:pb-8">
         <div className="mx-auto w-full max-w-7xl">
           <div className="space-y-6">
-        <section
-          id="patient-overview"
-          className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-emerald-900 to-teal-700 p-6 text-white shadow-xl md:p-8"
-        >
-          <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-emerald-300/20 blur-2xl" />
+            <section
+              id="patient-overview"
+              className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-emerald-900 to-teal-700 p-6 text-white shadow-xl md:p-8"
+            >
+              <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+              <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-emerald-300/20 blur-2xl" />
 
-          <div className="relative grid items-start gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-4">
-                <div className="relative group shrink-0">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden shadow-xl transition-all group-hover:border-white/40">
-                    {currentUser?.profileImage ? (
-                      <img 
-                        src={resolveAssetUrl(currentUser.profileImage)} 
-                        alt="Patient Profile" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-4xl font-bold text-white/50">{patient.name?.charAt(0) || 'P'}</span>
+              <div className="relative grid items-start gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-4">
+                    <div className="relative group shrink-0">
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden shadow-xl transition-all group-hover:border-white/40">
+                        {currentUser?.profileImage ? (
+                          <img
+                            src={resolveAssetUrl(currentUser.profileImage)}
+                            alt="Patient Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-4xl font-bold text-white/50">{patient.name?.charAt(0) || 'P'}</span>
+                        )}
+                      </div>
+                      <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer backdrop-blur-sm">
+                        <Camera size={24} className="mb-1" />
+                        <span className="text-xs font-semibold">Change</span>
+                        <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handleProfilePhotoUpload} />
+                      </label>
+                    </div>
+                    <div>
+                      <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm">
+                        <Sparkles size={15} />
+                        Patient Care Dashboard
+                      </div>
+
+                      <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
+                        Welcome back, {patient.name}
+                      </h1>
+
+                      <p className="mt-3 max-w-2xl text-sm text-white/85 md:text-base">
+                        Your profile, doctor assignment, appointments, and recommendations are
+                        now connected directly to backend APIs.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <a
+                      href="/bookAppointment"
+                      className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:-translate-y-0.5"
+                    >
+                      Book Appointment
+                    </a>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/25 bg-white/10 p-5 backdrop-blur-sm">
+                  <p className="text-sm text-white/80">Current Assignment</p>
+                  <div className="mt-3 text-sm">
+                    <p className="font-medium text-white">
+                      {assignedDoctor?.userId?.name
+                        ? `Dr. ${assignedDoctor.userId.name}`
+                        : "No doctor assigned"}
+                    </p>
+                    <p className="mt-1 text-white/80">
+                      {assignedDoctor?.specialization || "Assign a doctor to see specialization"}
+                    </p>
+                    <div className="mt-4 rounded-xl bg-black/25 p-3 text-sm text-white/90">
+                      Total appointments: <span className="font-semibold">{appointments.length}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {error ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
+
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {stats.map((item) => (
+                <article
+                  key={item.title}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="mb-4 flex items-start justify-between">
+                    <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">{item.icon}</div>
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-700">
+                      <ArrowUpRight size={13} />
+                      Live
+                    </span>
+                  </div>
+                  <h2 className="text-3xl font-semibold text-slate-900">{item.value}</h2>
+                  <p className="mt-1 text-sm font-medium text-slate-700">{item.title}</p>
+                  <p className="mt-1 text-xs text-slate-500">{item.trend}</p>
+                </article>
+              ))}
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-xl font-semibold text-slate-900">Top Rated Doctors</h2>
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                  <Star size={13} />
+                  Live ranking
+                </span>
+              </div>
+
+              {topRatedDoctors.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                  Ratings will appear here after patients submit reviews.
+                </div>
+              ) : (
+                <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-4">
+                  <motion.div
+                    className="flex w-max gap-3"
+                    animate={{ x: ["0%", "-50%"] }}
+                    transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
+                  >
+                    {[...topRatedDoctors, ...topRatedDoctors].map((doctor, index) => (
+                      <article
+                        key={`${doctor._id}-${index}`}
+                        className="min-w-[240px] rounded-xl border border-slate-200 bg-white p-3"
+                      >
+                        <p className="text-sm font-semibold text-slate-900">Dr. {doctor.name || doctor.userId?.name || "Doctor"}</p>
+                        <p className="text-xs text-slate-600">{doctor.specialization || "General Physician"}</p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                            <Star size={12} /> {doctor.averageRating.toFixed(1)}
+                          </span>
+                          <span className="text-xs text-slate-500">{doctor.reviewCount} review(s)</span>
+                        </div>
+                      </article>
+                    ))}
+                  </motion.div>
+                </div>
+              )}
+            </section>
+
+            <section className="grid gap-6 xl:grid-cols-3">
+              <div className="xl:col-span-2 space-y-6">
+                <div id="appointments-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <h2 className="text-xl font-semibold text-slate-900">Upcoming Appointments</h2>
+                    <a
+                      href="/bookAppointment"
+                      className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+                    >
+                      Book New
+                    </a>
+                  </div>
+
+                  <div className="space-y-4">
+                    {appointmentCards.length === 0 ? (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                        No appointments found yet.
+                      </div>
+                    ) : null}
+
+                    {appointmentCards.map((appointment) => (
+                      <article
+                        key={appointment.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5"
+                      >
+                        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+                          <div>
+                            <p className="text-lg font-semibold text-slate-900">Dr. {appointment.doctor}</p>
+                            <p className="text-sm text-slate-600">{appointment.specialty}</p>
+                            <p className="mt-1 text-sm text-slate-500">
+                              {appointment.date} • {appointment.time} • {appointment.mode}
+                            </p>
+                            {appointment.rawStatus === "scheduled" && appointment.createdByRole === "doctor" ? (
+                              <p className="mt-1 inline-flex rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+                                Follow-up booked by doctor
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(
+                                appointment.rawStatus
+                              )}`}
+                            >
+                              {appointment.status}
+                            </span>
+
+
+                            {appointment.rawStatus === "scheduled" ? (
+                              <button
+                                type="button"
+                                onClick={() => cancelAppointment(appointment.id)}
+                                disabled={cancellingAppointmentId === appointment.id}
+                                className="inline-flex items-center gap-2 rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-60"
+                              >
+                                {cancellingAppointmentId === appointment.id ? "Cancelling..." : "Cancel (Mistaken Booking)"}
+                              </button>
+                            ) : null}
+
+                            {appointment.rawStatus === "completed" || appointment.rawStatus === "approved" ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setOpenReviewAppointmentId((prev) =>
+                                    prev === appointment.id ? "" : appointment.id
+                                  )
+                                }
+                                disabled={Boolean(doctorRatings[appointment.doctorId]?.hasReviewed)}
+                                className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${doctorRatings[appointment.doctorId]?.hasReviewed
+                                  ? "cursor-not-allowed bg-slate-200 text-slate-500"
+                                  : "bg-amber-500 text-white hover:bg-amber-600"
+                                  }`}
+                              >
+                                <Star size={15} />
+                                {doctorRatings[appointment.doctorId]?.hasReviewed ? "Rated" : "Give Rating"}
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {appointment.doctorNote ? (
+                          <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">
+                              Doctor Follow-up Note
+                            </p>
+                            <p className="mt-1 text-sm text-cyan-900">{appointment.doctorNote}</p>
+                          </div>
+                        ) : null}
+
+                        {(appointment.rawStatus === "completed" || appointment.rawStatus === "approved") &&
+                          openReviewAppointmentId === appointment.id &&
+                          !doctorRatings[appointment.doctorId]?.hasReviewed ? (
+                          <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4">
+                            <p className="mb-2 text-sm font-semibold text-slate-900">Rate Dr. {appointment.doctor}</p>
+
+                            <div className="mb-3 flex items-center gap-2">
+                              {[1, 2, 3, 4, 5].map((value) => {
+                                const selectedRating = Number(reviewDrafts[appointment.id]?.rating || 5);
+                                const isActive = value <= selectedRating;
+                                return (
+                                  <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() => handleDraftChange(appointment.id, "rating", value)}
+                                    className={`rounded-lg p-1.5 ${isActive ? "text-amber-500" : "text-slate-300"}`}
+                                    aria-label={`Rate ${value} star`}
+                                  >
+                                    <Star size={18} fill={isActive ? "currentColor" : "none"} />
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <textarea
+                              value={reviewDrafts[appointment.id]?.comment || ""}
+                              onChange={(event) =>
+                                handleDraftChange(appointment.id, "comment", event.target.value)
+                              }
+                              rows={3}
+                              placeholder="Write your feedback about this consultation..."
+                              className="w-full rounded-lg border border-slate-300 p-2.5 text-sm outline-none focus:border-amber-300"
+                            />
+
+                            <div className="mt-3 flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setOpenReviewAppointmentId("")}
+                                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => submitDoctorRating(appointment)}
+                                disabled={submittingReviewFor === appointment.id}
+                                className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-amber-300"
+                              >
+                                {submittingReviewFor === appointment.id ? "Submitting..." : "Submit Rating"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+                  <div className="mb-5 flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-slate-900">Recommended Doctors</h2>
+                    <span className="text-sm font-medium text-emerald-700">
+                      {doctors.length} available
+                    </span>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {recommendedDoctors.length === 0 ? (
+                      <div className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-500">
+                        No doctors match your search.
+                      </div>
+                    ) : null}
+
+                    {recommendedDoctors.map((doctor) => (
+                      <article
+                        key={doctor._id}
+                        className="rounded-2xl border border-slate-200 p-4 transition hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <div className="grid h-12 w-12 place-items-center rounded-xl bg-emerald-50">
+                            <HeartPulse className="text-emerald-600" size={22} />
+                          </div>
+                          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                            ★ 4.8
+                          </span>
+                        </div>
+                        <h3 className="text-base font-semibold text-slate-900">Dr. {doctor.name}</h3>
+                        <p className="text-sm text-slate-600">{doctor.specialization || "General Physician"}</p>
+                        <p className="mt-2 text-xs text-slate-500">
+                          Experience: {doctor.experiance || 0} years
+                        </p>
+                        <p className="text-xs text-emerald-700">{doctor.HospitalName || "Hospital not listed"}</p>
+                        <div className="mt-4 flex items-center justify-between">
+                          <span className="text-sm font-semibold text-slate-800">Rs. {doctor.fees || 0}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleBookDoctor(doctor)}
+                            className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
+                          >
+                            View
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <aside className="space-y-6">
+                <div id="notifications-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+                      <Bell className="text-amber-600" size={18} />
+                      Notifications
+                    </h2>
+                    {!notificationsCleared && notifications.length > 0 && (
+                      <button
+                        onClick={() => setNotificationsCleared(true)}
+                        className="text-xs font-semibold text-slate-500 hover:text-slate-700 transition"
+                      >
+                        Clear All
+                      </button>
                     )}
                   </div>
-                  <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer backdrop-blur-sm">
-                    <Camera size={24} className="mb-1" />
-                    <span className="text-xs font-semibold">Change</span>
-                    <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handleProfilePhotoUpload} />
-                  </label>
-                </div>
-                <div>
-                  <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm">
-                    <Sparkles size={15} />
-                    Patient Care Dashboard
-                  </div>
 
-                  <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
-                    Welcome back, {patient.name}
-                  </h1>
-
-                  <p className="mt-3 max-w-2xl text-sm text-white/85 md:text-base">
-                    Your profile, doctor assignment, appointments, and recommendations are
-                    now connected directly to backend APIs.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <a
-                  href="/bookAppointment"
-                  className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:-translate-y-0.5"
-                >
-                  Book Appointment
-                </a>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/25 bg-white/10 p-5 backdrop-blur-sm">
-              <p className="text-sm text-white/80">Current Assignment</p>
-              <div className="mt-3 text-sm">
-                <p className="font-medium text-white">
-                  {assignedDoctor?.userId?.name
-                    ? `Dr. ${assignedDoctor.userId.name}`
-                    : "No doctor assigned"}
-                </p>
-                <p className="mt-1 text-white/80">
-                  {assignedDoctor?.specialization || "Assign a doctor to see specialization"}
-                </p>
-                <div className="mt-4 rounded-xl bg-black/25 p-3 text-sm text-white/90">
-                  Total appointments: <span className="font-semibold">{appointments.length}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        ) : null}
-
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((item) => (
-            <article
-              key={item.title}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <div className="mb-4 flex items-start justify-between">
-                <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">{item.icon}</div>
-                <span className="inline-flex items-center gap-1 text-xs text-emerald-700">
-                  <ArrowUpRight size={13} />
-                  Live
-                </span>
-              </div>
-              <h2 className="text-3xl font-semibold text-slate-900">{item.value}</h2>
-              <p className="mt-1 text-sm font-medium text-slate-700">{item.title}</p>
-              <p className="mt-1 text-xs text-slate-500">{item.trend}</p>
-            </article>
-          ))}
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold text-slate-900">Top Rated Doctors</h2>
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-              <Star size={13} />
-              Live ranking
-            </span>
-          </div>
-
-          {topRatedDoctors.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-              Ratings will appear here after patients submit reviews.
-            </div>
-          ) : (
-            <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-4">
-              <motion.div
-                className="flex w-max gap-3"
-                animate={{ x: ["0%", "-50%"] }}
-                transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
-              >
-                {[...topRatedDoctors, ...topRatedDoctors].map((doctor, index) => (
-                  <article
-                    key={`${doctor._id}-${index}`}
-                    className="min-w-[240px] rounded-xl border border-slate-200 bg-white p-3"
-                  >
-                    <p className="text-sm font-semibold text-slate-900">Dr. {doctor.name || doctor.userId?.name || "Doctor"}</p>
-                    <p className="text-xs text-slate-600">{doctor.specialization || "General Physician"}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                        <Star size={12} /> {doctor.averageRating.toFixed(1)}
-                      </span>
-                      <span className="text-xs text-slate-500">{doctor.reviewCount} review(s)</span>
-                    </div>
-                  </article>
-                ))}
-              </motion.div>
-            </div>
-          )}
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-3">
-          <div className="xl:col-span-2 space-y-6">
-            <div id="appointments-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <h2 className="text-xl font-semibold text-slate-900">Upcoming Appointments</h2>
-                <a
-                  href="/bookAppointment"
-                  className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-                >
-                  Book New
-                </a>
-              </div>
-
-              <div className="space-y-4">
-                {appointmentCards.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                    No appointments found yet.
-                  </div>
-                ) : null}
-
-                {appointmentCards.map((appointment) => (
-                  <article
-                    key={appointment.id}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-5"
-                  >
-                    <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-                      <div>
-                        <p className="text-lg font-semibold text-slate-900">Dr. {appointment.doctor}</p>
-                        <p className="text-sm text-slate-600">{appointment.specialty}</p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {appointment.date} • {appointment.time} • {appointment.mode}
-                        </p>
-                        {appointment.rawStatus === "scheduled" && appointment.createdByRole === "doctor" ? (
-                          <p className="mt-1 inline-flex rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
-                            Follow-up booked by doctor
-                          </p>
-                        ) : null}
+                  <div className="space-y-3">
+                    {notificationsCleared || notifications.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                        <Bell className="mx-auto mb-2 text-slate-400 opacity-50" size={24} />
+                        No new notifications
                       </div>
-
-                      <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(
-                            appointment.rawStatus
-                          )}`}
+                    ) : (
+                      notifications.map((note, index) => (
+                        <div
+                          key={`${note}-${index}`}
+                          className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm transition hover:border-amber-200"
                         >
-                          {appointment.status}
-                        </span>
-                        {appointment.rawStatus === "scheduled" ? (
-                          <button className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-                            <Video size={15} />
-                            View Details
-                          </button>
-                        ) : null}
-
-                        {appointment.rawStatus === "scheduled" ? (
-                          <button
-                            type="button"
-                            onClick={() => cancelAppointment(appointment.id)}
-                            disabled={cancellingAppointmentId === appointment.id}
-                            className="inline-flex items-center gap-2 rounded-lg bg-red-100 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-60"
-                          >
-                            {cancellingAppointmentId === appointment.id ? "Cancelling..." : "Cancel (Mistaken Booking)"}
-                          </button>
-                        ) : null}
-
-                        {appointment.rawStatus === "completed" || appointment.rawStatus === "approved" ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setOpenReviewAppointmentId((prev) =>
-                                prev === appointment.id ? "" : appointment.id
-                              )
-                            }
-                            disabled={Boolean(doctorRatings[appointment.doctorId]?.hasReviewed)}
-                            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
-                              doctorRatings[appointment.doctorId]?.hasReviewed
-                                ? "cursor-not-allowed bg-slate-200 text-slate-500"
-                                : "bg-amber-500 text-white hover:bg-amber-600"
-                            }`}
-                          >
-                            <Star size={15} />
-                            {doctorRatings[appointment.doctorId]?.hasReviewed ? "Rated" : "Give Rating"}
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {appointment.doctorNote ? (
-                      <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">
-                          Doctor Follow-up Note
-                        </p>
-                        <p className="mt-1 text-sm text-cyan-900">{appointment.doctorNote}</p>
-                      </div>
-                    ) : null}
-
-                    {(appointment.rawStatus === "completed" || appointment.rawStatus === "approved") &&
-                    openReviewAppointmentId === appointment.id &&
-                    !doctorRatings[appointment.doctorId]?.hasReviewed ? (
-                      <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4">
-                        <p className="mb-2 text-sm font-semibold text-slate-900">Rate Dr. {appointment.doctor}</p>
-
-                        <div className="mb-3 flex items-center gap-2">
-                          {[1, 2, 3, 4, 5].map((value) => {
-                            const selectedRating = Number(reviewDrafts[appointment.id]?.rating || 5);
-                            const isActive = value <= selectedRating;
-                            return (
-                              <button
-                                key={value}
-                                type="button"
-                                onClick={() => handleDraftChange(appointment.id, "rating", value)}
-                                className={`rounded-lg p-1.5 ${isActive ? "text-amber-500" : "text-slate-300"}`}
-                                aria-label={`Rate ${value} star`}
-                              >
-                                <Star size={18} fill={isActive ? "currentColor" : "none"} />
-                              </button>
-                            );
-                          })}
+                          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                            <Bell size={14} />
+                          </div>
+                          <p>{note}</p>
                         </div>
-
-                        <textarea
-                          value={reviewDrafts[appointment.id]?.comment || ""}
-                          onChange={(event) =>
-                            handleDraftChange(appointment.id, "comment", event.target.value)
-                          }
-                          rows={3}
-                          placeholder="Write your feedback about this consultation..."
-                          className="w-full rounded-lg border border-slate-300 p-2.5 text-sm outline-none focus:border-amber-300"
-                        />
-
-                        <div className="mt-3 flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setOpenReviewAppointmentId("")}
-                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => submitDoctorRating(appointment)}
-                            disabled={submittingReviewFor === appointment.id}
-                            className="rounded-lg bg-amber-500 px-3 py-2 text-sm font-medium text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-amber-300"
-                          >
-                            {submittingReviewFor === appointment.id ? "Submitting..." : "Submit Rating"}
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-slate-900">Recommended Doctors</h2>
-                <span className="text-sm font-medium text-emerald-700">
-                  {doctors.length} available
-                </span>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {recommendedDoctors.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-500">
-                    No doctors match your search.
+                      ))
+                    )}
                   </div>
-                ) : null}
-
-                {recommendedDoctors.map((doctor) => (
-                  <article
-                    key={doctor._id}
-                    className="rounded-2xl border border-slate-200 p-4 transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="grid h-12 w-12 place-items-center rounded-xl bg-emerald-50">
-                        <HeartPulse className="text-emerald-600" size={22} />
-                      </div>
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                        ★ 4.8
-                      </span>
-                    </div>
-                    <h3 className="text-base font-semibold text-slate-900">Dr. {doctor.name}</h3>
-                    <p className="text-sm text-slate-600">{doctor.specialization || "General Physician"}</p>
-                    <p className="mt-2 text-xs text-slate-500">
-                      Experience: {doctor.experiance || 0} years
-                    </p>
-                    <p className="text-xs text-emerald-700">{doctor.HospitalName || "Hospital not listed"}</p>
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="text-sm font-semibold text-slate-800">Rs. {doctor.fees || 0}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleBookDoctor(doctor)}
-                        className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
-                      >
-                        View
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <aside className="space-y-6">
-            <div id="notifications-section" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-                  <Bell className="text-amber-600" size={18} />
-                  Notifications
-                </h2>
-                {!notificationsCleared && notifications.length > 0 && (
-                  <button 
-                    onClick={() => setNotificationsCleared(true)}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-700 transition"
-                  >
-                    Clear All
-                  </button>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                {notificationsCleared || notifications.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                    <Bell className="mx-auto mb-2 text-slate-400 opacity-50" size={24} />
-                    No new notifications
-                  </div>
-                ) : (
-                  notifications.map((note, index) => (
-                    <div
-                      key={`${note}-${index}`}
-                      className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm transition hover:border-amber-200"
-                    >
-                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-                        <Bell size={14} />
-                      </div>
-                      <p>{note}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </aside>
-        </section>
+                </div>
+              </aside>
+            </section>
           </div>
         </div>
       </div>

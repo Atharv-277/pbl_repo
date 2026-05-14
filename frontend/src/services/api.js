@@ -127,6 +127,8 @@ export const adminAPI = {
     getAllDoctors: () => api.get('/admin/doctors'),
     approveDoctor: (doctorId) => api.patch(`/admin/doctors/${doctorId}/approve`),
     rejectDoctor: (doctorId) => api.patch(`/admin/doctors/${doctorId}/reject`),
+    blockDoctor: (doctorId) => api.patch(`/admin/doctors/${doctorId}/block`),
+    unblockDoctor: (doctorId) => api.patch(`/admin/doctors/${doctorId}/unblock`),
 };
 
 export default api;

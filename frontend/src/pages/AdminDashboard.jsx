@@ -9,7 +9,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("pending");
   const [pendingDoctors, setPendingDoctors] = useState([]);
   const [allDoctors, setAllDoctors] = useState([]);
-  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, blocked: 0 });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -60,6 +60,30 @@ export default function AdminDashboard() {
     finally { setActionLoading(null); }
   };
 
+  const handleBlock = async (doctorId, doctorName) => {
+    if (!window.confirm(`Block Dr. ${doctorName}?`)) return;
+    setActionLoading(doctorId);
+    try {
+      const res = await adminAPI.blockDoctor(doctorId);
+      toast.success(res.data.message || `Dr. ${doctorName} blocked.`);
+      setSelectedDoctor(null);
+      await fetchData();
+    } catch { toast.error("Failed to block doctor."); }
+    finally { setActionLoading(null); }
+  };
+
+  const handleUnblock = async (doctorId, doctorName) => {
+    if (!window.confirm(`Unblock Dr. ${doctorName}?`)) return;
+    setActionLoading(doctorId);
+    try {
+      const res = await adminAPI.unblockDoctor(doctorId);
+      toast.success(res.data.message || `Dr. ${doctorName} unblocked.`);
+      setSelectedDoctor(null);
+      await fetchData();
+    } catch { toast.error("Failed to unblock doctor."); }
+    finally { setActionLoading(null); }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     window.dispatchEvent(new Event("auth-changed"));
@@ -77,8 +101,8 @@ export default function AdminDashboard() {
   };
 
   const statusBadge = (status) => {
-    const s = { pending: "bg-amber-100 text-amber-800 border-amber-200", approved: "bg-emerald-100 text-emerald-800 border-emerald-200", rejected: "bg-red-100 text-red-800 border-red-200" };
-    const dot = { pending: "bg-amber-500", approved: "bg-emerald-500", rejected: "bg-red-500" };
+    const s = { pending: "bg-amber-100 text-amber-800 border-amber-200", approved: "bg-emerald-100 text-emerald-800 border-emerald-200", rejected: "bg-red-100 text-red-800 border-red-200", blocked: "bg-slate-200 text-slate-700 border-slate-300" };
+    const dot = { pending: "bg-amber-500", approved: "bg-emerald-500", rejected: "bg-red-500", blocked: "bg-slate-500" };
     return (
       <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${s[status] || ""}`}>
         <span className={`mr-1.5 h-2 w-2 rounded-full ${dot[status]}`} />
@@ -115,12 +139,13 @@ export default function AdminDashboard() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5 mb-8">
           {[
             { label: "Total Doctors", value: stats.total, icon: "👨‍⚕️", bg: "bg-slate-50 border-slate-200" },
             { label: "Pending", value: stats.pending, icon: "⏳", bg: "bg-amber-50 border-amber-200" },
             { label: "Approved", value: stats.approved, icon: "✅", bg: "bg-emerald-50 border-emerald-200" },
             { label: "Rejected", value: stats.rejected, icon: "❌", bg: "bg-red-50 border-red-200" },
+            { label: "Blocked", value: stats.blocked, icon: "⛔", bg: "bg-slate-100 border-slate-300" },
           ].map((stat) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`rounded-2xl border p-5 ${stat.bg} shadow-sm`}>
               <div className="flex items-center justify-between">
@@ -234,6 +259,10 @@ export default function AdminDashboard() {
                             <button onClick={() => handleApprove(doc._id, doc.name)} disabled={actionLoading === doc._id} className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50">Approve</button>
                             <button onClick={() => handleReject(doc._id, doc.name)} disabled={actionLoading === doc._id} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">Reject</button>
                           </div>
+                        ) : doc.status === "approved" ? (
+                          <button onClick={() => handleBlock(doc._id, doc.name)} disabled={actionLoading === doc._id} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50">Block</button>
+                        ) : doc.status === "blocked" ? (
+                          <button onClick={() => handleUnblock(doc._id, doc.name)} disabled={actionLoading === doc._id} className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50">Unblock</button>
                         ) : <span className="text-xs text-slate-400">—</span>}
                       </td>
                     </tr>
@@ -370,6 +399,22 @@ export default function AdminDashboard() {
                   <button onClick={() => handleReject(selectedDoctor._id, selectedDoctor.name)} disabled={actionLoading === selectedDoctor._id}
                     className="flex-1 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 active:scale-[0.98] disabled:opacity-50">
                     ✕ Reject Doctor
+                  </button>
+                </div>
+              )}
+              {selectedDoctor.status === "approved" && (
+                <div className="sticky bottom-0 flex gap-3 border-t border-slate-100 bg-white p-5 rounded-b-3xl">
+                  <button onClick={() => handleBlock(selectedDoctor._id, selectedDoctor.name)} disabled={actionLoading === selectedDoctor._id}
+                    className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 active:scale-[0.98] disabled:opacity-50">
+                    ⛔ Block Doctor
+                  </button>
+                </div>
+              )}
+              {selectedDoctor.status === "blocked" && (
+                <div className="sticky bottom-0 flex gap-3 border-t border-slate-100 bg-white p-5 rounded-b-3xl">
+                  <button onClick={() => handleUnblock(selectedDoctor._id, selectedDoctor.name)} disabled={actionLoading === selectedDoctor._id}
+                    className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg active:scale-[0.98] disabled:opacity-50">
+                    ✓ Unblock Doctor
                   </button>
                 </div>
               )}
