@@ -7,7 +7,9 @@ const doctorSchema = new mongoose.Schema({
     experience: String,
     licenceNo: String,
     hospitalName: String,
+    licenceCertificate: String,
     fees: Number,
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     blockedSlots: [
         {
             date: { type: String, required: true }, // YYYY-MM-DD

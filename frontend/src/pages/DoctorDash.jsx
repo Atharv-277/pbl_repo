@@ -14,10 +14,11 @@ import {
   XCircle,
   FilePenLine,
   LogOut,
+  Camera,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Calendar from "./components/Calender";
-import { appointmentAPI, doctorAPI } from "../services/api";
+import { appointmentAPI, doctorAPI, API_BASE_ROOT } from "../services/api";
 
 const toDateKey = (value) => {
   const date = new Date(value);
@@ -365,6 +366,31 @@ export default function DoctorDashboard() {
     }
   };
 
+  const handleProfilePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Profile photo must be less than 5MB.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('profileImage', file);
+    
+    try {
+      const response = await doctorAPI.uploadProfilePhoto(formData);
+      // Update local storage so it persists across refreshes
+      const updatedUser = { ...user, profileImage: response.data.profileImage };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // Refresh dashboard to pull the latest profile info
+      await fetchDashboardData();
+    } catch (err) {
+      console.error('Failed to upload profile photo:', err);
+      alert('Failed to upload profile photo');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100">
@@ -379,15 +405,37 @@ export default function DoctorDashboard() {
         <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-blue-900 to-cyan-700 p-6 text-white shadow-xl md:p-8">
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
-                <ShieldCheck size={14} />
-                Clinical Command Center
-              </p>
-              <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Welcome, Dr. {doctor.name}</h1>
-              <p className="mt-2 max-w-2xl text-sm text-white/85 md:text-base">
-                Live data from backend is now connected for appointments, patient list,
-                and dashboard insights.
-              </p>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                <div className="relative group shrink-0">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden shadow-xl transition-all group-hover:border-white/40">
+                    {doctorProfile?.profileImage || user?.profileImage ? (
+                      <img 
+                        src={`${API_BASE_ROOT}/${doctorProfile?.profileImage || user?.profileImage}`} 
+                        alt="Dr. Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-4xl font-bold text-white/50">{doctor.name?.charAt(0) || 'D'}</span>
+                    )}
+                  </div>
+                  <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer backdrop-blur-sm">
+                    <Camera size={24} className="mb-1" />
+                    <span className="text-xs font-semibold">Change</span>
+                    <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handleProfilePhotoUpload} />
+                  </label>
+                </div>
+                <div>
+                  <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium">
+                    <ShieldCheck size={14} />
+                    Clinical Command Center
+                  </p>
+                  <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Welcome, Dr. {doctor.name}</h1>
+                  <p className="mt-2 max-w-2xl text-sm text-white/85 md:text-base">
+                    Live data from backend is now connected for appointments, patient list,
+                    and dashboard insights.
+                  </p>
+                </div>
+              </div>
               <div className="mt-5 flex flex-wrap gap-3">
                 <button
                   type="button"

@@ -51,6 +51,9 @@ api.interceptors.response.use(
 export const authAPI = {
     login: (credentials) => api.post('/auth/login', credentials),
     register: (userData) => api.post('/auth/register', userData),
+    registerWithFile: (formData) => api.post('/auth/register', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
 };
 
 export const doctorAPI = {
@@ -61,12 +64,18 @@ export const doctorAPI = {
     getMyBlockedSlots: () => api.get('/doctors/blocked-slots'),
     addBlockedSlot: (slotData) => api.post('/doctors/blocked-slots', slotData),
     deleteBlockedSlot: (slotId) => api.delete(`/doctors/blocked-slots/${slotId}`),
+    uploadProfilePhoto: (formData) => api.put('/doctors/profile-photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
 };
 
 export const patientAPI = {
     getDashboard: () => api.get('/patients/dashboard'),
     assignDoctor: (doctorId) => api.patch('/patients/assignDoctor', { doctorId }),
     getProfile: () => api.get('/patients/profile'),
+    uploadProfilePhoto: (formData) => api.put('/patients/profile-photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
 };
 
 export const appointmentAPI = {
@@ -83,6 +92,14 @@ export const appointmentAPI = {
 export const reviewAPI = {
     createReview: (reviewData) => api.post('/reviews', reviewData),
     getDoctorReviews: (doctorId) => api.get(`/reviews/doctor/${doctorId}`),
+};
+
+export const adminAPI = {
+    getStats: () => api.get('/admin/stats'),
+    getPendingDoctors: () => api.get('/admin/pending-doctors'),
+    getAllDoctors: () => api.get('/admin/doctors'),
+    approveDoctor: (doctorId) => api.patch(`/admin/doctors/${doctorId}/approve`),
+    rejectDoctor: (doctorId) => api.patch(`/admin/doctors/${doctorId}/reject`),
 };
 
 export default api;

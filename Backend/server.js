@@ -9,6 +9,7 @@ const doctorRoutes = require('./Routes/doctorRoutes');
 const patientRoutes = require('./Routes/patientRoutes');
 const appointmentRoutes = require('./Routes/appointmentRoutes');
 const reviewRoutes = require('./Routes/reviewRoutes');
+const adminRoutes = require('./Routes/adminRoutes');
 const { errorHandler } = require('./Middleware/errorMiddleware');
 
 dotenv.config();
@@ -27,6 +28,8 @@ const createUploadDirectories = () => {
   const uploadsDir = path.join(__dirname, 'uploads');
   const doctorProfilesDir = path.join(uploadsDir, 'doctor-profiles');
   const patientProfilesDir = path.join(uploadsDir, 'patient-profiles');
+  const doctorCertificatesDir = path.join(uploadsDir, 'doctor-certificates');
+  const profilePhotosDir = path.join(uploadsDir, 'profile-photos');
 
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
@@ -41,6 +44,16 @@ const createUploadDirectories = () => {
   if (!fs.existsSync(patientProfilesDir)) {
     fs.mkdirSync(patientProfilesDir, { recursive: true });
     console.log('Created patient-profiles directory');
+  }
+
+  if (!fs.existsSync(doctorCertificatesDir)) {
+    fs.mkdirSync(doctorCertificatesDir, { recursive: true });
+    console.log('Created doctor-certificates directory');
+  }
+
+  if (!fs.existsSync(profilePhotosDir)) {
+    fs.mkdirSync(profilePhotosDir, { recursive: true });
+    console.log('Created profile-photos directory');
   }
 };
 
@@ -101,6 +114,7 @@ app.use('/api/doctors', doctorRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use(errorHandler);
 

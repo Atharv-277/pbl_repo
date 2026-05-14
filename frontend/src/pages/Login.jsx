@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from "../services/api";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
@@ -22,7 +23,9 @@ export default function Login() {
       const userData = response.data;
       localStorage.setItem("user", JSON.stringify(userData));
 
-      if (userData.role === "doctor") {
+      if (userData.role === "admin") {
+        navigate("/admin");
+      } else if (userData.role === "doctor") {
         navigate("/doctorDashboard");
       } else if (userData.role === "patient") {
         navigate("/patientDashboard");
@@ -40,6 +43,12 @@ export default function Login() {
     }
   };
 
+  const tabs = [
+    { key: "patient", label: "Patient" },
+    { key: "doctor", label: "Doctor" },
+    { key: "admin", label: "Admin" },
+  ];
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 px-4">
       <motion.div
@@ -54,33 +63,28 @@ export default function Login() {
           </h2>
 
           {error && (
-            <div className="mb-4 text-center text-red-400 bg-red-900/30 border border-red-500/40 rounded-lg p-2 text-sm">
+            <div className="mb-4 text-center text-red-400 bg-red-900/30 border border-red-500/40 rounded-lg p-3 text-sm">
               {error}
             </div>
           )}
 
           {/* Toggle */}
           <div className="flex bg-white/10 rounded-xl p-1 mb-6">
-            <button
-              onClick={() => setActiveTab("patient")}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
-                activeTab === "patient"
-                  ? "bg-gradient-to-r from-teal-400 to-blue-500 text-white"
-                  : "text-gray-300"
-              }`}
-            >
-              Patient
-            </button>
-            <button
-              onClick={() => setActiveTab("doctor")}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
-                activeTab === "doctor"
-                  ? "bg-gradient-to-r from-teal-400 to-blue-500 text-white"
-                  : "text-gray-300"
-              }`}
-            >
-              Doctor
-            </button>
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+                  activeTab === tab.key
+                    ? tab.key === "admin"
+                      ? "bg-gradient-to-r from-violet-500 to-purple-600 text-white"
+                      : "bg-gradient-to-r from-teal-400 to-blue-500 text-white"
+                    : "text-gray-300"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -127,14 +131,18 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl font-semibold bg-gradient-to-r from-teal-400 to-blue-500 text-white shadow-lg hover:scale-[1.02] active:scale-[0.98] transition disabled:opacity-50"
+              className={`w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:scale-[1.02] active:scale-[0.98] transition disabled:opacity-50 ${
+                activeTab === "admin"
+                  ? "bg-gradient-to-r from-violet-500 to-purple-600"
+                  : "bg-gradient-to-r from-teal-400 to-blue-500"
+              }`}
             >
-              {loading ? "Signing In..." : "Sign In"}
+              {loading ? "Signing In..." : `Sign In as ${tabs.find(t => t.key === activeTab)?.label}`}
             </button>
           </form>
 
           <p className="text-center text-sm text-gray-400 mt-6">
-            Don’t have an account?{' '}
+            Don't have an account?{' '}
             <a href="/register" className="text-teal-400 hover:underline">
               Register
             </a>

@@ -117,3 +117,34 @@ exports.getOrCreatePatient = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+// Update profile photo for patient (updates the User model)
+exports.updateProfilePhoto = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No image file uploaded' });
+        }
+
+        const profileImagePath = req.file.path.replace(/\\/g, '/');
+        
+        // Find user by ID and update profileImage
+        const User = require('../Models/User');
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { profileImage: profileImagePath },
+            { new: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({
+            message: 'Profile photo updated successfully',
+            profileImage: user.profileImage
+        });
+    } catch (error) {
+        console.error('Error updating profile photo:', error);
+        res.status(500).json({ message: 'Failed to update profile photo', error: error.message });
+    }
+};

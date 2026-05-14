@@ -52,7 +52,7 @@ const Navbar = () => {
         setIsLoggedIn(false);
         setUser(null);
       }
-    } catch (error) {
+    } catch {
       localStorage.removeItem("user");
       setIsLoggedIn(false);
       setUser(null);

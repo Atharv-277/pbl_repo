@@ -16,6 +16,7 @@ import Appointment from "./pages/Appointment";
 import BookDoctorProfile from "./pages/BookDoc";
 import DoctormobileDashobaord from "./pages/DocMobile";
 import Service from './pages/Service';
+import AdminDashboard from './pages/AdminDashboard';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 //import Loginn from "./pages/Loginn";
@@ -38,6 +39,7 @@ const App = () => {
         <Route path="/doc" element={<DoctormobileDashobaord />} />
         {/*<Route path="/loginn" element={<Loginn></Loginn>}></Route>*/}
         <Route path='/service' exact element={<Service></Service>}></Route>
+        <Route path='/admin' element={<AdminDashboard />} />
       </Routes>
       <ToastContainer position="top-center" autoClose={3000} />
     </Router>

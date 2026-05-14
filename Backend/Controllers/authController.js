@@ -29,6 +29,11 @@ exports.register = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Handle profile photo upload
+        const profileImagePath = req.files?.profileImage?.[0]
+            ? req.files.profileImage[0].path.replace(/\\/g, '/')
+            : null;
+
         const user = await User.create({
             name,
             email,
@@ -37,6 +42,7 @@ exports.register = async (req, res) => {
             phoneNo,
             gender,
             address,
+            profileImage: profileImagePath,
         });
 
         if (role === 'doctor') {
@@ -47,7 +53,25 @@ exports.register = async (req, res) => {
                 experience,
                 licenceNo,
                 hospitalName,
-                fees
+                fees,
+                licenceCertificate: req.files?.licenceCertificate?.[0]
+                    ? req.files.licenceCertificate[0].path.replace(/\\/g, '/')
+                    : null,
+                status: 'pending'
+            });
+
+            // Doctor registration is pending — do NOT issue a token
+            return res.status(201).json({
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                phoneNo: user.phoneNo,
+                gender: user.gender,
+                address: user.address,
+                profileImage: user.profileImage,
+                pending: true,
+                message: "Registration submitted successfully! Please wait for admin approval before you can log in."
             });
         } else if (role === 'patient') {
             await Patient.create({ userId: user._id });
@@ -62,6 +86,7 @@ exports.register = async (req, res) => {
             phoneNo: user.phoneNo,
             gender: user.gender,
             address: user.address,
+            profileImage: user.profileImage,
         });
 
     } catch (err) {
@@ -92,6 +117,26 @@ exports.login = async (req, res) => {
         if (!match)
             return res.status(400).json({ message: "Invalid credentials" });
 
+        // If doctor, check approval status
+        if (user.role === 'doctor') {
+            const doctor = await Doctor.findOne({ userId: user._id });
+            if (!doctor) {
+                return res.status(400).json({ message: "Doctor profile not found" });
+            }
+            if (doctor.status === 'pending') {
+                return res.status(403).json({ 
+                    message: "Your account is pending admin approval. Please wait for the admin to review your registration.",
+                    status: 'pending'
+                });
+            }
+            if (doctor.status === 'rejected') {
+                return res.status(403).json({ 
+                    message: "Your registration has been rejected by the admin. Please contact support for more information.",
+                    status: 'rejected'
+                });
+            }
+        }
+
         const token = generateToken(user._id);
         console.log('Token generated successfully');
 
@@ -104,6 +149,7 @@ exports.login = async (req, res) => {
             phoneNo: user.phoneNo,
             gender: user.gender,
             address: user.address,
+            profileImage: user.profileImage,
         });
     } catch (err) {
         console.error('Login error:', err);

@@ -16,8 +16,8 @@ const toMinutes = (timeValue) => {
 exports.getAllDoctors = async (req, res) => {
     try {
         console.log('Fetching all doctors...');
-        const doctors = await Doctor.find()
-            .populate('userId', 'name email phoneNo gender address')
+        const doctors = await Doctor.find({ status: 'approved' })
+            .populate('userId', 'name email phoneNo gender address profileImage')
             .select('-__v');
         
         console.log('Doctors found:', doctors.length);
@@ -43,7 +43,8 @@ exports.getAllDoctors = async (req, res) => {
                 email: doctor.userId?.email || '',
                 phoneNo: doctor.userId?.phoneNo || '',
                 gender: doctor.userId?.gender || '',
-                address: doctor.userId?.address || ''
+                address: doctor.userId?.address || '',
+                profileImage: doctor.userId?.profileImage || null
             };
         });
         
@@ -64,7 +65,7 @@ exports.getMyPatients = async (req, res) => {
         }
         
         const patients = await Patient.find({ doctor: doctor._id })
-            .populate('userId', 'name email phoneNo gender address');
+            .populate('userId', 'name email phoneNo gender address profileImage');
         
         const patientsWithUserData = patients.map(patient => ({
             _id: patient._id,
@@ -215,5 +216,34 @@ exports.deleteBlockedSlot = async (req, res) => {
     } catch (error) {
         console.error('Error deleting blocked slot:', error);
         return res.status(500).json({ message: 'Failed to delete blocked slot', error: error.message });
+    }
+};
+
+// Update profile photo for doctor (updates the User model)
+exports.updateProfilePhoto = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No image file uploaded' });
+        }
+
+        const profileImagePath = req.file.path.replace(/\\/g, '/');
+        
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            { profileImage: profileImagePath },
+            { new: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({
+            message: 'Profile photo updated successfully',
+            profileImage: user.profileImage
+        });
+    } catch (error) {
+        console.error('Error updating profile photo:', error);
+        res.status(500).json({ message: 'Failed to update profile photo', error: error.message });
     }
 };

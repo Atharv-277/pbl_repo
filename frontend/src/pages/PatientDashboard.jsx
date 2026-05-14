@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+// eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import {
@@ -18,9 +19,10 @@ import {
   Video,
   Droplets,
   Star,
+  Camera,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { appointmentAPI, doctorAPI, patientAPI, reviewAPI } from "../services/api";
+import { appointmentAPI, doctorAPI, patientAPI, reviewAPI, API_BASE_ROOT } from "../services/api";
 import Navbar from "../Navbar";
 
 const formatStatus = (status) => {
@@ -120,7 +122,7 @@ export default function PatientDashboard() {
             reviewCount,
             hasReviewed,
           };
-        } catch (ratingError) {
+        } catch {
           return {
             ...doctor,
             averageRating: 0,
@@ -376,10 +378,29 @@ export default function PatientDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    window.dispatchEvent(new Event("auth-changed"));
-    navigate("/");
+  const handleProfilePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Profile photo must be less than 5MB.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('profileImage', file);
+    
+    try {
+      const response = await patientAPI.uploadProfilePhoto(formData);
+      // Update local storage so it persists across refreshes
+      const updatedUser = { ...user, profileImage: response.data.profileImage };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // Refresh window or state to pull the latest profile info
+      window.location.reload();
+    } catch (err) {
+      console.error('Failed to upload profile photo:', err);
+      toast.error('Failed to upload profile photo');
+    }
   };
 
   const handleBookDoctor = (doctor) => {
@@ -396,12 +417,6 @@ export default function PatientDashboard() {
     { label: "Hydration", progress: 70, icon: <Droplets size={16} /> },
     { label: "Daily Steps", progress: 82, icon: <Activity size={16} /> },
     { label: "Sleep Quality", progress: 64, icon: <Clock3 size={16} /> },
-  ];
-
-  const upcomingTasks = [
-    "Keep profile and contact information updated",
-    "Track appointment outcomes after each visit",
-    "Use doctor notes for follow-up planning",
   ];
 
   useEffect(() => {
@@ -447,19 +462,41 @@ export default function PatientDashboard() {
 
           <div className="relative grid items-start gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm">
-                <Sparkles size={15} />
-                Patient Care Dashboard
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-4">
+                <div className="relative group shrink-0">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden shadow-xl transition-all group-hover:border-white/40">
+                    {user?.profileImage ? (
+                      <img 
+                        src={`${API_BASE_ROOT}/${user.profileImage}`} 
+                        alt="Patient Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-4xl font-bold text-white/50">{patient.name?.charAt(0) || 'P'}</span>
+                    )}
+                  </div>
+                  <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer backdrop-blur-sm">
+                    <Camera size={24} className="mb-1" />
+                    <span className="text-xs font-semibold">Change</span>
+                    <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handleProfilePhotoUpload} />
+                  </label>
+                </div>
+                <div>
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm">
+                    <Sparkles size={15} />
+                    Patient Care Dashboard
+                  </div>
+
+                  <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
+                    Welcome back, {patient.name}
+                  </h1>
+
+                  <p className="mt-3 max-w-2xl text-sm text-white/85 md:text-base">
+                    Your profile, doctor assignment, appointments, and recommendations are
+                    now connected directly to backend APIs.
+                  </p>
+                </div>
               </div>
-
-              <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
-                Welcome back, {patient.name}
-              </h1>
-
-              <p className="mt-3 max-w-2xl text-sm text-white/85 md:text-base">
-                Your profile, doctor assignment, appointments, and recommendations are
-                now connected directly to backend APIs.
-              </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <a

@@ -292,6 +292,19 @@ exports.updateAppointmentStatus = async (req, res) => {
       }
 
       if (typeof status !== 'undefined') {
+        // Prevent marking future appointments as completed
+        if (status === 'completed') {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          const today = new Date();
+          // Compare dates only (ignore time), so same-day appointments can be completed
+          appointmentDate.setHours(0, 0, 0, 0);
+          today.setHours(0, 0, 0, 0);
+          if (appointmentDate > today) {
+            return res.status(400).json({
+              message: 'Cannot mark a future appointment as completed. Please wait until the appointment date.'
+            });
+          }
+        }
         appointment.status = status;
       }
 
