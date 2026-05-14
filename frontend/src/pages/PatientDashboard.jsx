@@ -58,7 +58,7 @@ export default function PatientDashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const user = useMemo(() => JSON.parse(localStorage.getItem("user") || "{}"), []);
+  const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
   const fallbackVitals = useMemo(() => {
     const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
     const randomAge = Math.floor(Math.random() * 43) + 18;
@@ -67,6 +67,20 @@ export default function PatientDashboard() {
     return {
       age: randomAge,
       bloodGroup: randomBloodGroup,
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncUser = () => {
+      setCurrentUser(JSON.parse(localStorage.getItem("user") || "{}"));
+    };
+
+    window.addEventListener("auth-changed", syncUser);
+    window.addEventListener("storage", syncUser);
+
+    return () => {
+      window.removeEventListener("auth-changed", syncUser);
+      window.removeEventListener("storage", syncUser);
     };
   }, []);
 
@@ -364,11 +378,11 @@ export default function PatientDashboard() {
   }, [assignedDoctor?.userId?.name, appointmentCards, reviews.length, doctorNoteAlerts]);
 
   const patient = {
-    name: user?.name || "Patient",
-    age: user?.age || fallbackVitals.age,
-    gender: user?.gender || "N/A",
-    bloodGroup: user?.bloodGroup || fallbackVitals.bloodGroup,
-    phone: user?.phoneNo || "N/A",
+    name: currentUser?.name || "Patient",
+    age: currentUser?.age || fallbackVitals.age,
+    gender: currentUser?.gender || "N/A",
+    bloodGroup: currentUser?.bloodGroup || fallbackVitals.bloodGroup,
+    phone: currentUser?.phoneNo || "N/A",
     emergency: "N/A",
     insurance: "Not Available",
     id: patientProfile?._id || "N/A",
@@ -396,8 +410,9 @@ export default function PatientDashboard() {
     try {
       const response = await patientAPI.uploadProfilePhoto(formData);
       // Update local storage so it persists across refreshes
-      const updatedUser = { ...user, profileImage: response.data.profileImage };
+      const updatedUser = { ...currentUser, profileImage: response.data.profileImage };
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      setCurrentUser(updatedUser);
       // Refresh window or state to pull the latest profile info
       window.location.reload();
     } catch (err) {
@@ -458,9 +473,9 @@ export default function PatientDashboard() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-4">
                 <div className="relative group shrink-0">
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white/20 bg-white/10 flex items-center justify-center overflow-hidden shadow-xl transition-all group-hover:border-white/40">
-                    {user?.profileImage ? (
+                    {currentUser?.profileImage ? (
                       <img 
-                        src={resolveAssetUrl(user.profileImage)} 
+                        src={resolveAssetUrl(currentUser.profileImage)} 
                         alt="Patient Profile" 
                         className="w-full h-full object-cover"
                       />
