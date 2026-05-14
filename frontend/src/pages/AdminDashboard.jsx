@@ -60,29 +60,7 @@ export default function AdminDashboard() {
     finally { setActionLoading(null); }
   };
 
-  const handleBlock = async (doctorId, doctorName) => {
-    if (!window.confirm(`Block Dr. ${doctorName}?`)) return;
-    setActionLoading(doctorId);
-    try {
-      const res = await adminAPI.blockDoctor(doctorId);
-      toast.success(res.data.message || `Dr. ${doctorName} blocked.`);
-      setSelectedDoctor(null);
-      await fetchData();
-    } catch { toast.error("Failed to block doctor."); }
-    finally { setActionLoading(null); }
-  };
 
-  const handleUnblock = async (doctorId, doctorName) => {
-    if (!window.confirm(`Unblock Dr. ${doctorName}?`)) return;
-    setActionLoading(doctorId);
-    try {
-      const res = await adminAPI.unblockDoctor(doctorId);
-      toast.success(res.data.message || `Dr. ${doctorName} unblocked.`);
-      setSelectedDoctor(null);
-      await fetchData();
-    } catch { toast.error("Failed to unblock doctor."); }
-    finally { setActionLoading(null); }
-  };
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -256,14 +234,25 @@ export default function AdminDashboard() {
                       <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
                         {doc.status === "pending" ? (
                           <div className="flex gap-2">
-                            <button onClick={() => handleApprove(doc._id, doc.name)} disabled={actionLoading === doc._id} className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50">Approve</button>
-                            <button onClick={() => handleReject(doc._id, doc.name)} disabled={actionLoading === doc._id} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">Reject</button>
+                            <button
+                              onClick={() => handleApprove(doc._id, doc.name)}
+                              disabled={actionLoading === doc._id}
+                              className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+                            >
+                              Approve
+                            </button>
+
+                            <button
+                              onClick={() => handleReject(doc._id, doc.name)}
+                              disabled={actionLoading === doc._id}
+                              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
                           </div>
-                        ) : doc.status === "approved" ? (
-                          <button onClick={() => handleBlock(doc._id, doc.name)} disabled={actionLoading === doc._id} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50">Block</button>
-                        ) : doc.status === "blocked" ? (
-                          <button onClick={() => handleUnblock(doc._id, doc.name)} disabled={actionLoading === doc._id} className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50">Unblock</button>
-                        ) : <span className="text-xs text-slate-400">—</span>}
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -282,7 +271,7 @@ export default function AdminDashboard() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm" onClick={() => setSelectedDoctor(null)} />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="fixed inset-4 z-50 m-auto max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
-              
+
               {/* Modal Header */}
               <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 rounded-t-3xl">
                 <div className="flex items-center gap-4">
@@ -402,22 +391,7 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               )}
-              {selectedDoctor.status === "approved" && (
-                <div className="sticky bottom-0 flex gap-3 border-t border-slate-100 bg-white p-5 rounded-b-3xl">
-                  <button onClick={() => handleBlock(selectedDoctor._id, selectedDoctor.name)} disabled={actionLoading === selectedDoctor._id}
-                    className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 active:scale-[0.98] disabled:opacity-50">
-                    ⛔ Block Doctor
-                  </button>
-                </div>
-              )}
-              {selectedDoctor.status === "blocked" && (
-                <div className="sticky bottom-0 flex gap-3 border-t border-slate-100 bg-white p-5 rounded-b-3xl">
-                  <button onClick={() => handleUnblock(selectedDoctor._id, selectedDoctor.name)} disabled={actionLoading === selectedDoctor._id}
-                    className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg active:scale-[0.98] disabled:opacity-50">
-                    ✓ Unblock Doctor
-                  </button>
-                </div>
-              )}
+
             </motion.div>
           </>
         )}
