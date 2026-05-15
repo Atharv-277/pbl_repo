@@ -21,6 +21,13 @@ const HeroSection = () => {
     navigate("/login");
   };
 
+  const handleExploreServicesClick = () => {
+    const servicesSection = document.getElementById("services");
+    if (servicesSection) {
+      servicesSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-[#f8fffe] via-[#eefcf8] to-[#f4fbff] pt-24 pb-16 md:py-24">
       {/* Background Blurs */}
@@ -71,7 +78,11 @@ const HeroSection = () => {
                 Book Appointment
               </button>
 
-              <button className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-white text-slate-800 px-7 py-3.5 font-semibold shadow-sm transition duration-300 hover:bg-teal-50 hover:border-teal-300">
+              <button
+                type="button"
+                onClick={handleExploreServicesClick}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-white text-slate-800 px-7 py-3.5 font-semibold shadow-sm transition duration-300 hover:bg-teal-50 hover:border-teal-300"
+              >
                 <HeartPulse className="w-5 h-5 text-teal-600" />
                 Explore Services
               </button>

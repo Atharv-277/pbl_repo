@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const Services = () => {
   return (
-    <div className="bg-gray-50 w-full">
+    <div id="services" className="bg-gray-50 w-full">
       <div className="py-8 md:py-30 flex flex-col justify-center place-content-center px-4">
         <h1 className="text-[#1694a4] font-bold text-2xl md:text-3xl flex justify-center my-6 md:my-8">
           Services We Provide
@@ -33,7 +33,7 @@ const Services = () => {
             </p>
             <Link to={"https://www.mayoclinic.org/tests-procedures/chemotherapy/about/pac-20385033"} className="px-4 md:px-5 text-[#1694a4] py-6 md:py-10 block" >
               Learn More &rarr;
-             </Link>
+            </Link>
           </div>
 
           {/*2nd column* */}
@@ -58,7 +58,7 @@ const Services = () => {
             </p>
             <Link to={"https://www.kidney.org/kidney-topics/dialysis"} className="px-4 md:px-5 text-[#1694a4] py-6 md:py-10 block" >
               Learn More &rarr;
-             </Link>
+            </Link>
           </div>
           {/*3rd column* */}
 
@@ -84,7 +84,7 @@ const Services = () => {
             </p>
             <Link to={"https://my.clevelandclinic.org/health/treatments/21054-physical-therapy"} className="px-4 md:px-5 text-[#1694a4] py-6 md:py-10 block" >
               Learn More &rarr;
-           </Link>
+            </Link>
           </div>
 
           {/*4th column* */}
@@ -109,7 +109,7 @@ const Services = () => {
             </p>
             <Link to={"https://www.who.int/health-topics/vaccines-and-immunization#tab=tab_1"} className="px-4 md:px-5 text-[#1694a4] py-6 md:py-10 block" >
               Learn More &rarr;
-             </Link>
+            </Link>
           </div>
           {/*5th column* */}
 
@@ -155,11 +155,11 @@ const Services = () => {
               and tooth loss. Common procedures include cleanings, fillings,
               root canals, crowns, and extractions. Dentists also offer cosmetic
               services like teeth whitening and orthodontics to improve the
-              appearance of teeth. 
+              appearance of teeth.
             </p>
             <Link to={"https://www.sciencedirect.com/topics/medicine-and-dentistry/dental-treatment"} className="px-4 md:px-5 text-[#1694a4] py-6 md:py-10 block" >
               Learn More &rarr;
-             </Link>
+            </Link>
           </div>
         </div>
       </div>
